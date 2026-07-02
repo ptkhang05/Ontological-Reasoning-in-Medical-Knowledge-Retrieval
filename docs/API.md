@@ -11,7 +11,8 @@ Request fields:
 - `documentId` (optional): caller-provided document identifier.
 - `documentType` (optional): caller-provided document type.
 - `encounterDate` (optional): caller-provided encounter date.
-- `language` (optional): defaults to `en`; non-English is best-effort in v1.
+- `language` (optional): defaults to `vi`; English and Vietnamese are supported
+  by the prototype rules.
 - `options.allowExternalInference` (optional): defaults to `false`.
 - `options.confidenceThreshold` (optional): defaults to `0.80`.
 - `options.includeUnmapped` (optional): defaults to `true`.

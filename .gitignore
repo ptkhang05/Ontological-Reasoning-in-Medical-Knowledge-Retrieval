@@ -14,6 +14,8 @@ dist/
 build/
 *.egg-info/
 uvicorn.*.log
+output/
+submissions/
 .venv/
 venv/
 data/terminologies/*.zip

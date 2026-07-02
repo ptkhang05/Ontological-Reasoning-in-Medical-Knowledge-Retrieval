@@ -67,7 +67,7 @@ class AnalyzeRequest(CamelModel):
     document_id: str | None = None
     document_type: str | None = None
     encounter_date: str | None = None
-    language: str = "en"
+    language: str = "vi"
     options: AnalyzeOptions = Field(default_factory=AnalyzeOptions)
 
     @field_validator("text")

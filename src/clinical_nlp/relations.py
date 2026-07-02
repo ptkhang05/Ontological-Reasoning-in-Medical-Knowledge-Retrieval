@@ -6,9 +6,12 @@ import uuid
 from clinical_nlp.context import sentence_bounds
 from clinical_nlp.schemas import Concept, ConceptType, Relation, RelationType
 
-DOSAGE_PATTERN = re.compile(r"\s+(\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|mL))\b", re.I)
+DOSAGE_PATTERN = re.compile(
+    r"\s*(\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|mL|viên|ống)(?:\s*x\s*\d+)?)\b",
+    re.I,
+)
 LAB_VALUE_PATTERN = re.compile(
-    r"\s*(?:is|=|:)?\s*(\d+(?:\.\d+)?\s*(?:mg/dL|mmol/L|mEq/L|%))\b",
+    r"\s*(?:is|=|:|là|tăng nhẹ lên)?\s*(\d+(?:\.\d+)?\s*(?:mg/dL|mmol/L|mEq/L|%)?)\b",
     re.I,
 )
 
@@ -100,7 +103,7 @@ def _has_treatment_cue(text: str, medication: Concept, disease: Concept) -> bool
     start = min(medication.end_offset, disease.end_offset)
     end = max(medication.start_offset, disease.start_offset)
     between = text[start:end].lower()
-    return any(cue in between for cue in (" for ", " treat", " due to "))
+    return any(cue in between for cue in (" for ", " treat", " due to ", " cho ", " điều trị "))
 
 
 def _combined_evidence(text: str, left: Concept, right: Concept) -> tuple[int, int]:

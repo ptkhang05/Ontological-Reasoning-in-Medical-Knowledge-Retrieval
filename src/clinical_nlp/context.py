@@ -2,11 +2,63 @@ from __future__ import annotations
 
 from clinical_nlp.schemas import ContextAttributes, Polarity, Subject, Temporality
 
-NEGATION_CUES = ("no", "denies", "denied", "without", "negative for")
-POSSIBLE_CUES = ("possible", "probable", "suspected", "rule out", "r/o")
-FAMILY_CUES = ("mother", "father", "sister", "brother", "family history", "parent")
-HISTORY_CUES = ("history of", "past medical history", "prior", "previous", "previously")
-HYPOTHETICAL_CUES = ("if", "planned", "will", "rule out", "r/o")
+NEGATION_CUES = (
+    "no",
+    "denies",
+    "denied",
+    "without",
+    "negative for",
+    "không",
+    "không có",
+    "không ghi nhận",
+    "chưa ghi nhận",
+    "chưa phát hiện",
+)
+POSSIBLE_CUES = (
+    "possible",
+    "probable",
+    "suspected",
+    "rule out",
+    "r/o",
+    "nghi ngờ",
+    "có thể",
+)
+FAMILY_CUES = (
+    "mother",
+    "father",
+    "sister",
+    "brother",
+    "family history",
+    "parent",
+    "mẹ",
+    "cha",
+    "bố",
+    "chị",
+    "anh",
+    "em",
+    "gia đình",
+)
+HISTORY_CUES = (
+    "history of",
+    "past medical history",
+    "prior",
+    "previous",
+    "previously",
+    "tiền sử",
+    "trước đây",
+    "mãn tính",
+    "đã điều trị",
+)
+HYPOTHETICAL_CUES = (
+    "if",
+    "planned",
+    "will",
+    "rule out",
+    "r/o",
+    "dự kiến",
+    "sẽ",
+    "lên lịch",
+)
 
 
 def infer_context(text: str, start: int, end: int) -> ContextAttributes:

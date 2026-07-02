@@ -45,11 +45,14 @@ class ClinicalPipeline:
         external_used = False
         warnings: list[WarningMessage] = []
 
-        if request.language.lower() != "en":
+        if request.language.lower() not in {"en", "vi"}:
             warnings.append(
                 WarningMessage(
                     code="LANGUAGE_NOT_DEFAULT",
-                    message="English is the v1 default; non-English text is processed best-effort.",
+                    message=(
+                        "Only English and Vietnamese are configured; "
+                        "text is processed best-effort."
+                    ),
                 )
             )
 
