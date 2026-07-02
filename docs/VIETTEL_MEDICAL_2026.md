@@ -20,10 +20,16 @@ Implementation choices in this repo:
 
 - Vietnamese is now the default language for `AnalyzeRequest`.
 - The rule-based extractor includes Vietnamese clinical terms observed in the
-  public `input/input/*.txt` files.
-- `python -m clinical_nlp.cli.batch input/input --output output/submission.zip`
-  creates a ZIP containing `submission.json`.
+  local `input/input/*.txt` files.
+- `/v1/analyze/btc` returns the BTC-compatible list-of-entities schema:
+  `text`, `position`, `type`, `assertions`, and `candidates`.
+- `python -m clinical_nlp.cli.batch input/input --output output/output.zip`
+  creates a ZIP containing one JSON file per input record, for example
+  `1.json`, `2.json`, ..., `100.json`. Each JSON file is a direct list of
+  extracted entities.
+- `input/` is ignored by git so public/private contest data stays local.
 
 The public phase endpoint does not expose the full judge schema without
-authentication. The ZIP payload is therefore intentionally explicit and easy to
-adapt if BTC publishes a stricter required schema.
+authentication. The BTC serializer follows the requirement files provided in
+the local workspace; if BTC publishes a stricter schema later, update only the
+serializer and CLI packaging layer.

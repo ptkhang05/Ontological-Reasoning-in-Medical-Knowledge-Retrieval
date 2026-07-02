@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
+from clinical_nlp.btc import BtcEntity, response_to_btc_entities
 from clinical_nlp.pipeline import ClinicalPipeline
 from clinical_nlp.schemas import (
     AnalyzeRequest,
@@ -95,6 +96,16 @@ def create_app(pipeline: ClinicalPipeline | None = None) -> FastAPI:
     async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         service: ClinicalPipeline = app.state.pipeline
         return service.analyze(request)
+
+    @app.post(
+        "/v1/analyze/btc",
+        response_model=list[BtcEntity],
+        status_code=status.HTTP_200_OK,
+    )
+    async def analyze_btc(request: AnalyzeRequest) -> list[BtcEntity]:
+        service: ClinicalPipeline = app.state.pipeline
+        response = service.analyze(request)
+        return response_to_btc_entities(response, request.text)
 
     return app
 

@@ -52,9 +52,55 @@ def test_batch_cli_packages_viettel_zip(tmp_path) -> None:  # type: ignore[no-un
 
     assert output_zip.exists()
     with zipfile.ZipFile(output_zip) as archive:
-        payload = json.loads(archive.read("submission.json").decode("utf-8"))
+        assert archive.namelist() == ["1.json", "2.json"]
+        first_payload = json.loads(archive.read("1.json").decode("utf-8"))
+        second_payload = json.loads(archive.read("2.json").decode("utf-8"))
 
-    assert payload["contest"] == "medical-2026"
-    assert payload["submissionType"] == "FILE_ZIP"
-    assert [record["fileId"] for record in payload["records"]] == ["1", "2"]
-    assert payload["records"][0]["analysis"]["processingMetadata"]["externalInferenceUsed"] is False
+    assert isinstance(first_payload, list)
+    assert isinstance(second_payload, list)
+    assert all(
+        set(entity) == {"text", "position", "type", "assertions", "candidates"}
+        for entity in first_payload
+    )
+    aspirin = next(entity for entity in first_payload if entity["text"].lower() == "aspirin")
+    assert aspirin["type"] == "THUỐC"
+    assert aspirin["candidates"] == ["1191"]
+    assert "submission.json" not in archive.namelist()
+
+
+def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:
+    text = (
+        "Tiền sử xơ gan. Bệnh nhân không có khó thở. "
+        "Điều trị aspirin 325mg. Creatinine 1.2."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    assert isinstance(entities, list)
+    assert all(
+        set(entity) == {"text", "position", "type", "assertions", "candidates"}
+        for entity in entities
+    )
+
+    dyspnea = next(entity for entity in entities if entity["text"].lower() == "khó thở")
+    assert dyspnea["type"] == "TRIỆU_CHỨNG"
+    assert dyspnea["position"] == [text.index("khó thở"), text.index("khó thở") + len("khó thở")]
+    assert dyspnea["assertions"] == ["isNegated"]
+    assert dyspnea["candidates"] == []
+
+    cirrhosis = next(entity for entity in entities if entity["text"].lower() == "xơ gan")
+    assert cirrhosis["type"] == "CHẨN_ĐOÁN"
+    assert cirrhosis["assertions"] == ["isHistorical"]
+
+    aspirin = next(entity for entity in entities if entity["text"].lower() == "aspirin")
+    assert aspirin["type"] == "THUỐC"
+    assert aspirin["candidates"] == ["1191"]
+
+    lab_name = next(entity for entity in entities if entity["text"].lower() == "creatinine")
+    assert lab_name["type"] == "TÊN_XÉT_NGHIỆM"
+
+    lab_value = next(entity for entity in entities if entity["text"] == "1.2")
+    assert lab_value["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    assert lab_value["position"] == [text.index("1.2"), text.index("1.2") + len("1.2")]

@@ -30,3 +30,25 @@ Errors use this stable shape:
 ```
 
 The service intentionally avoids echoing raw clinical text in validation errors.
+
+## `POST /v1/analyze/btc`
+
+Accepts the same request body as `/v1/analyze`, but returns the BTC-compatible
+entity list directly. This endpoint intentionally omits prototype metadata,
+relations, warnings, and review flags.
+
+Each returned entity has exactly these keys:
+
+```json
+{
+  "text": "aspirin",
+  "position": [42, 49],
+  "type": "THUỐC",
+  "assertions": [],
+  "candidates": ["1191"]
+}
+```
+
+Supported `type` values are `TRIỆU_CHỨNG`, `TÊN_XÉT_NGHIỆM`,
+`KẾT_QUẢ_XÉT_NGHIỆM`, `CHẨN_ĐOÁN`, and `THUỐC`. Supported assertion values are
+`isNegated`, `isFamily`, and `isHistorical`.

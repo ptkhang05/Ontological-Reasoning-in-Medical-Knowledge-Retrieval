@@ -5,6 +5,7 @@ import json
 import zipfile
 from pathlib import Path
 
+from clinical_nlp.btc import btc_entities_to_jsonable
 from clinical_nlp.pipeline import ClinicalPipeline
 from clinical_nlp.schemas import AnalyzeRequest
 
@@ -17,8 +18,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("output/submission.zip"),
-        help="ZIP path to write. Defaults to output/submission.zip.",
+        default=Path("output/output.zip"),
+        help="ZIP path to write. Defaults to output/output.zip.",
     )
     parser.add_argument("--language", default="vi", help="Language code passed to the analyzer.")
     args = parser.parse_args()
@@ -31,37 +32,25 @@ def package_submission(input_dir: Path, output_zip: Path, language: str = "vi") 
         raise SystemExit(f"Input directory does not exist: {input_dir}")
 
     pipeline = ClinicalPipeline()
-    records = []
-    for path in sorted(input_dir.glob("*.txt"), key=numeric_stem):
-        request = AnalyzeRequest(
-            document_id=path.stem,
-            document_type="viettel-medical-2026-public",
-            language=language,
-            text=path.read_text(encoding="utf-8"),
-        )
-        response = pipeline.analyze(request)
-        records.append(
-            {
-                "fileId": path.stem,
-                "fileName": path.name,
-                "analysis": response.model_dump(mode="json", by_alias=True),
-            }
-        )
-
-    payload = {
-        "contest": "medical-2026",
-        "phase": "019e649f-4e5d-70ed-b221-7a10f537281e",
-        "submissionType": "FILE_ZIP",
-        "schemaVersion": "0.1.0",
-        "records": records,
-    }
-
     output_zip.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr(
-            "submission.json",
-            json.dumps(payload, ensure_ascii=False, indent=2),
-        )
+        for path in sorted(input_dir.glob("*.txt"), key=numeric_stem):
+            text = path.read_text(encoding="utf-8")
+            request = AnalyzeRequest(
+                document_id=path.stem,
+                document_type="viettel-medical-2026-public",
+                language=language,
+                text=text,
+            )
+            response = pipeline.analyze(request)
+            archive.writestr(
+                f"{path.stem}.json",
+                json.dumps(
+                    btc_entities_to_jsonable(response, text),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
     return output_zip
 
 

@@ -14,11 +14,12 @@ python -m uvicorn clinical_nlp.api.app:app --reload
 python -m pytest
 python -m ruff check .
 python -m mypy
-python -m clinical_nlp.cli.batch input/input --output output/submission.zip
+python -m clinical_nlp.cli.batch input/input --output output/output.zip
 ```
 
 Terminology files can be placed under `data/terminologies`. Do not commit large
-or licensed terminology dumps.
+or licensed terminology dumps. Local contest data under `input/` is ignored by
+git.
 
 See `docs/API.md` for the request/response contract,
 `docs/TERMINOLOGY.md` for terminology loader details, and

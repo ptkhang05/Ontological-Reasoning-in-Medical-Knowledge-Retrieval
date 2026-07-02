@@ -85,10 +85,37 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
 
 def sentence_bounds(text: str, start: int, end: int) -> tuple[int, int]:
     del end
-    left = max(text.rfind(".", 0, start), text.rfind("\n", 0, start))
+    left = max(_rfind_sentence_dot(text, start), text.rfind("\n", 0, start))
     sentence_start = 0 if left == -1 else left + 1
-    right_dot = text.find(".", start)
+    right_dot = _find_sentence_dot(text, start)
     right_newline = text.find("\n", start)
     right_candidates = [index for index in (right_dot, right_newline) if index != -1]
     sentence_end = min(right_candidates) if right_candidates else len(text)
     return sentence_start, sentence_end
+
+
+def _find_sentence_dot(text: str, start: int) -> int:
+    index = text.find(".", start)
+    while index != -1:
+        if not _is_decimal_dot(text, index):
+            return index
+        index = text.find(".", index + 1)
+    return -1
+
+
+def _rfind_sentence_dot(text: str, end: int) -> int:
+    index = text.rfind(".", 0, end)
+    while index != -1:
+        if not _is_decimal_dot(text, index):
+            return index
+        index = text.rfind(".", 0, index)
+    return -1
+
+
+def _is_decimal_dot(text: str, index: int) -> bool:
+    return (
+        index > 0
+        and index + 1 < len(text)
+        and text[index - 1].isdigit()
+        and text[index + 1].isdigit()
+    )
