@@ -178,6 +178,73 @@ def test_unspecified_adenoma_gets_icd_candidate(client: TestClient) -> None:
     assert adenoma["candidates"] == ["D36.9"]
 
 
+def test_common_public_chronic_diagnoses_get_icd_candidates(client: TestClient) -> None:
+    text = (
+        "Tiền sử đái tháo đường, rung nhĩ, bệnh thận mạn tính, suy tim, "
+        "bệnh động mạch vành và bệnh phổi tắc nghẽn mạn tính. "
+        "Chẩn đoán viêm phổi, thuyên tắc phổi, tăng kali máu và béo phì."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    expected = {
+        "đái tháo đường": "E11.9",
+        "rung nhĩ": "I48.91",
+        "bệnh thận mạn tính": "N18.9",
+        "suy tim": "I50.9",
+        "bệnh động mạch vành": "I25.10",
+        "bệnh phổi tắc nghẽn mạn tính": "J44.9",
+        "viêm phổi": "J18.9",
+        "thuyên tắc phổi": "I26.99",
+        "tăng kali máu": "E87.5",
+        "béo phì": "E66.9",
+    }
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    for text_value, code in expected.items():
+        entity = diagnosis_by_text[text_value]
+        assert entity["candidates"] == [code]
+
+
+def test_common_public_acute_diagnoses_get_icd_candidates(client: TestClient) -> None:
+    text = (
+        "Chẩn đoán suy thận cấp, nhiễm trùng huyết, viêm mô tế bào, "
+        "ung thư đại tràng, suy hô hấp, hạ kali máu, ngưng thở khi ngủ "
+        "và viêm tủy xương. Có tiền sử đột quỵ."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    expected = {
+        "suy thận cấp": "N17.9",
+        "nhiễm trùng huyết": "A41.9",
+        "viêm mô tế bào": "L03.90",
+        "ung thư đại tràng": "C18.9",
+        "suy hô hấp": "J96.90",
+        "hạ kali máu": "E87.6",
+        "ngưng thở khi ngủ": "G47.30",
+        "viêm tủy xương": "M86.9",
+        "đột quỵ": "I63.9",
+    }
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    for text_value, code in expected.items():
+        entity = diagnosis_by_text[text_value]
+        assert entity["candidates"] == [code]
+
+
 def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
@@ -327,6 +394,36 @@ def test_common_public_symptoms_are_extracted_with_assertions(
     assert symptom_by_text["ớn lạnh"]["assertions"] == ["isNegated"]
     assert symptom_by_text["khò khè"]["assertions"] == ["isNegated"]
     assert symptom_by_text["ho ra máu"]["assertions"] == []
+
+
+def test_long_public_symptom_spans_are_preferred(client: TestClient) -> None:
+    text = (
+        "Bệnh nhân khó thở khi gắng sức, nôn ra máu, phù chi dưới, ho khan, "
+        "sốt cao, uống kém, toàn trạng suy kiệt, mờ mắt và mất ngủ."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert {
+        "khó thở khi gắng sức",
+        "nôn ra máu",
+        "phù chi dưới",
+        "ho khan",
+        "sốt cao",
+        "uống kém",
+        "toàn trạng suy kiệt",
+        "mờ mắt",
+        "mất ngủ",
+    }.issubset(symptom_texts)
+    assert "khó thở" not in symptom_texts
+    assert "phù" not in symptom_texts
 
 
 def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:

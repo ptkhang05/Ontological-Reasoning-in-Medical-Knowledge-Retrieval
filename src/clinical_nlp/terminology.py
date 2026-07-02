@@ -105,6 +105,20 @@ def normalize_term(term: str) -> str:
     return " ".join(term.strip().lower().replace("-", " ").split())
 
 
+def _icd10_entry(
+    code: str, preferred_term: str, synonyms: tuple[str, ...]
+) -> TerminologyEntry:
+    return TerminologyEntry(
+        concept_type=ConceptType.DISEASE,
+        code_system="ICD-10-CM",
+        code=code,
+        preferred_term=preferred_term,
+        synonyms=synonyms,
+        release_id="clinical-seed-see-cms",
+        source_url=CMS_ICD10_URL,
+    )
+
+
 def demo_entries() -> list[TerminologyEntry]:
     return [
         TerminologyEntry(
@@ -112,9 +126,137 @@ def demo_entries() -> list[TerminologyEntry]:
             code_system="ICD-10-CM",
             code="E11.9",
             preferred_term="Type 2 diabetes mellitus without complications",
-            synonyms=("type 2 diabetes", "t2dm", "diabetes mellitus type 2"),
+            synonyms=(
+                "type 2 diabetes",
+                "t2dm",
+                "diabetes mellitus type 2",
+                "đái tháo đường",
+                "đái tháo đường típ 2",
+                "đái tháo đường type 2",
+                "tiểu đường",
+            ),
             release_id="demo-seed-see-cms",
             source_url=CMS_ICD10_URL,
+        ),
+        _icd10_entry(
+            "I48.91",
+            "Unspecified atrial fibrillation",
+            ("rung nhĩ",),
+        ),
+        _icd10_entry(
+            "I48.0",
+            "Paroxysmal atrial fibrillation",
+            ("rung nhĩ kịch phát",),
+        ),
+        _icd10_entry(
+            "N18.9",
+            "Chronic kidney disease, unspecified",
+            ("bệnh thận mạn", "bệnh thận mạn tính"),
+        ),
+        _icd10_entry(
+            "N17.9",
+            "Acute kidney failure, unspecified",
+            ("suy thận cấp",),
+        ),
+        _icd10_entry(
+            "N19",
+            "Unspecified kidney failure",
+            ("suy thận",),
+        ),
+        _icd10_entry(
+            "I50.9",
+            "Heart failure, unspecified",
+            ("suy tim",),
+        ),
+        _icd10_entry(
+            "I25.10",
+            "Atherosclerotic heart disease of native coronary artery without angina pectoris",
+            ("bệnh động mạch vành", "bệnh mạch vành"),
+        ),
+        _icd10_entry(
+            "E78.5",
+            "Hyperlipidemia, unspecified",
+            ("tăng lipid máu", "rối loạn lipid máu"),
+        ),
+        _icd10_entry(
+            "E78.00",
+            "Pure hypercholesterolemia, unspecified",
+            ("tăng cholesterol máu",),
+        ),
+        _icd10_entry(
+            "J44.9",
+            "Chronic obstructive pulmonary disease, unspecified",
+            ("bệnh phổi tắc nghẽn mạn tính", "copd"),
+        ),
+        _icd10_entry(
+            "J45.909",
+            "Unspecified asthma, uncomplicated",
+            ("hen suyễn", "hen phế quản"),
+        ),
+        _icd10_entry(
+            "J18.9",
+            "Pneumonia, unspecified organism",
+            ("viêm phổi",),
+        ),
+        _icd10_entry(
+            "A41.9",
+            "Sepsis, unspecified organism",
+            ("nhiễm trùng huyết",),
+        ),
+        _icd10_entry(
+            "L03.90",
+            "Cellulitis, unspecified",
+            ("viêm mô tế bào",),
+        ),
+        _icd10_entry(
+            "C18.9",
+            "Malignant neoplasm of colon, unspecified",
+            ("ung thư đại tràng", "ung thư biểu mô đại tràng"),
+        ),
+        _icd10_entry(
+            "I26.99",
+            "Other pulmonary embolism without acute cor pulmonale",
+            ("thuyên tắc phổi",),
+        ),
+        _icd10_entry(
+            "J96.90",
+            "Respiratory failure, unspecified, unspecified whether with hypoxia or hypercapnia",
+            ("suy hô hấp",),
+        ),
+        _icd10_entry(
+            "E87.5",
+            "Hyperkalemia",
+            ("tăng kali máu",),
+        ),
+        _icd10_entry(
+            "E87.6",
+            "Hypokalemia",
+            ("hạ kali máu",),
+        ),
+        _icd10_entry(
+            "E66.9",
+            "Obesity, unspecified",
+            ("béo phì",),
+        ),
+        _icd10_entry(
+            "G47.33",
+            "Obstructive sleep apnea (adult) (pediatric)",
+            ("ngưng thở khi ngủ do tắc nghẽn",),
+        ),
+        _icd10_entry(
+            "G47.30",
+            "Sleep apnea, unspecified",
+            ("ngưng thở khi ngủ",),
+        ),
+        _icd10_entry(
+            "M86.9",
+            "Osteomyelitis, unspecified",
+            ("viêm tủy xương", "viêm tuỷ xương"),
+        ),
+        _icd10_entry(
+            "I63.9",
+            "Cerebral infarction, unspecified",
+            ("đột quỵ",),
         ),
         TerminologyEntry(
             concept_type=ConceptType.DISEASE,
