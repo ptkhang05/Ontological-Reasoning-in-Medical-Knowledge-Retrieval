@@ -44,7 +44,7 @@ def package_submission(input_dir: Path, output_zip: Path, language: str = "vi") 
             )
             response = pipeline.analyze(request)
             archive.writestr(
-                f"{path.stem}.json",
+                f"output/{path.stem}.json",
                 json.dumps(
                     btc_entities_to_jsonable(response, text),
                     ensure_ascii=False,

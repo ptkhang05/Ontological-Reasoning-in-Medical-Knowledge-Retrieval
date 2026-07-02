@@ -27,9 +27,12 @@ def test_vietnamese_record_extracts_core_contest_concepts(client: TestClient) ->
     assert cirrhosis["conceptType"] == "DISEASE"
     assert cirrhosis["context"]["polarity"] == "POSSIBLE"
 
-    aspirin = next(concept for concept in concepts if concept["text"].lower() == "aspirin")
+    aspirin = next(
+        concept for concept in concepts if concept["text"].lower() == "aspirin 325mg x 1"
+    )
     assert aspirin["conceptType"] == "MEDICATION"
     assert aspirin["normalized"]["codeSystem"] == "RxNorm"
+    assert aspirin["normalized"]["code"] == "317300"
 
     lab = next(concept for concept in concepts if concept["text"].lower() == "creatinine")
     assert lab["conceptType"] == "LAB_RESULT"
@@ -38,7 +41,6 @@ def test_vietnamese_record_extracts_core_contest_concepts(client: TestClient) ->
     assert sex["conceptType"] == "PATIENT_INFO"
 
     relation_types = {relation["type"] for relation in body["relations"]}
-    assert "HAS_DOSAGE" in relation_types
     assert "HAS_VALUE" in relation_types
 
 
@@ -52,9 +54,9 @@ def test_batch_cli_packages_viettel_zip(tmp_path) -> None:  # type: ignore[no-un
 
     assert output_zip.exists()
     with zipfile.ZipFile(output_zip) as archive:
-        assert archive.namelist() == ["1.json", "2.json"]
-        first_payload = json.loads(archive.read("1.json").decode("utf-8"))
-        second_payload = json.loads(archive.read("2.json").decode("utf-8"))
+        assert archive.namelist() == ["output/1.json", "output/2.json"]
+        first_payload = json.loads(archive.read("output/1.json").decode("utf-8"))
+        second_payload = json.loads(archive.read("output/2.json").decode("utf-8"))
 
     assert isinstance(first_payload, list)
     assert isinstance(second_payload, list)
@@ -62,10 +64,38 @@ def test_batch_cli_packages_viettel_zip(tmp_path) -> None:  # type: ignore[no-un
         set(entity) == {"text", "position", "type", "assertions", "candidates"}
         for entity in first_payload
     )
-    aspirin = next(entity for entity in first_payload if entity["text"].lower() == "aspirin")
+    aspirin = next(
+        entity for entity in first_payload if entity["text"].lower() == "aspirin 325mg"
+    )
     assert aspirin["type"] == "THUỐC"
-    assert aspirin["candidates"] == ["1191"]
+    assert aspirin["candidates"] == ["317300"]
     assert "submission.json" not in archive.namelist()
+
+
+def test_btc_serializer_expands_medication_text_and_historical_context(
+    client: TestClient,
+) -> None:
+    text = "Thuốc trước khi nhập viện\n- metoprolol 25mg po bid\n- doxycycline cho viêm da."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    metoprolol = next(
+        entity for entity in entities if entity["text"].lower() == "metoprolol 25mg po bid"
+    )
+    assert metoprolol["type"] == "THUỐC"
+    assert metoprolol["candidates"] == ["1370489"]
+    assert metoprolol["position"] == [
+        text.index("metoprolol"),
+        text.index("metoprolol") + len("metoprolol 25mg po bid"),
+    ]
+    assert metoprolol["assertions"] == ["isHistorical"]
+
+    doxycycline = next(entity for entity in entities if entity["text"].lower() == "doxycycline")
+    assert doxycycline["type"] == "THUỐC"
+    assert doxycycline["assertions"] == ["isHistorical"]
 
 
 def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:
@@ -94,9 +124,9 @@ def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:
     assert cirrhosis["type"] == "CHẨN_ĐOÁN"
     assert cirrhosis["assertions"] == ["isHistorical"]
 
-    aspirin = next(entity for entity in entities if entity["text"].lower() == "aspirin")
+    aspirin = next(entity for entity in entities if entity["text"].lower() == "aspirin 325mg")
     assert aspirin["type"] == "THUỐC"
-    assert aspirin["candidates"] == ["1191"]
+    assert aspirin["candidates"] == ["317300"]
 
     lab_name = next(entity for entity in entities if entity["text"].lower() == "creatinine")
     assert lab_name["type"] == "TÊN_XÉT_NGHIỆM"
