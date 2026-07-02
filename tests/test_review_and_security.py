@@ -3,6 +3,7 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
+from clinical_nlp.deidentification import Deidentifier
 from clinical_nlp.pipeline import ClinicalPipeline
 from clinical_nlp.schemas import AnalyzeRequest
 
@@ -47,6 +48,32 @@ def test_external_inference_receives_deidentified_text_only() -> None:
     assert "John Doe" not in external.seen_text
     assert "555-123-4567" not in external.seen_text
     assert any(flag.reason == "EXTERNAL_INFERENCE_USED" for flag in response.review_flags)
+
+
+def test_external_inference_redacts_names_without_trailing_comma() -> None:
+    external = RecordingExternalExtractor()
+    pipeline = ClinicalPipeline(external_extractor=external)
+    request = AnalyzeRequest(
+        text="John Doe reports fever. Patient Mary Smith denies cough.",
+        options={"allowExternalInference": True},
+    )
+
+    pipeline.analyze(request)
+
+    assert external.seen_text is not None
+    assert "John Doe" not in external.seen_text
+    assert "Mary Smith" not in external.seen_text
+    assert "fever" in external.seen_text
+    assert "cough" in external.seen_text
+
+
+def test_deidentifier_preserves_offsets_when_masking_names_without_commas() -> None:
+    text = "John Doe reports fever."
+    deidentified = Deidentifier().deidentify(text)
+
+    assert len(deidentified.processed_text) == len(text)
+    assert text.index("fever") == deidentified.processed_text.index("fever")
+    assert "John Doe" not in deidentified.processed_text
 
 
 def test_api_does_not_log_raw_clinical_text(

@@ -29,6 +29,7 @@ class DeidentifiedText:
 class PIIPattern:
     label: str
     pattern: Pattern[str]
+    mask_group: int = 0
 
 
 class Deidentifier:
@@ -44,7 +45,27 @@ class Deidentifier:
                 "MRN",
                 re.compile(r"\b(?:MRN|medical record)\s*[:#]?\s*[A-Za-z0-9-]+\b", re.I),
             ),
-            PIIPattern("NAME", re.compile(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b(?=,)")),
+            PIIPattern(
+                "NAME",
+                re.compile(
+                    r"\b(?i:patient|pt|name)\s*[:#]?\s+"
+                    r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b",
+                ),
+                mask_group=1,
+            ),
+            PIIPattern(
+                "NAME",
+                re.compile(r"\b(?:Mr|Mrs|Ms|Dr)\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b"),
+                mask_group=1,
+            ),
+            PIIPattern(
+                "NAME",
+                re.compile(
+                    r"\b([A-Z][a-z]+ [A-Z][a-z]+)\b"
+                    r"(?=,|\s+(?:reports|denies|has|presents|presented|complains|takes|is|was)\b)"
+                ),
+                mask_group=1,
+            ),
         )
 
     def deidentify(self, text: str) -> DeidentifiedText:
@@ -54,7 +75,10 @@ class Deidentifier:
 
         for pii_pattern in self._patterns:
             for match in pii_pattern.pattern.finditer(text):
-                span = range(match.start(), match.end())
+                start, end = match.span(pii_pattern.mask_group)
+                if start == -1 or end == -1:
+                    continue
+                span = range(start, end)
                 if any(overlaps(span, existing) for existing in occupied):
                     continue
                 occupied.append(span)
