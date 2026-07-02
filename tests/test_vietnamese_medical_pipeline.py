@@ -98,6 +98,77 @@ def test_btc_serializer_expands_medication_text_and_historical_context(
     assert doxycycline["assertions"] == ["isHistorical"]
 
 
+def test_heuristic_extractor_filters_vietnamese_connector_words(client: TestClient) -> None:
+    text = "Bệnh nhân dùng thuốc tại nhà. Điều trị bằng oxy và theo dõi sát."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_texts = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+    assert "thuốc" not in medication_texts
+    assert "bằng" not in medication_texts
+    assert "tại" not in medication_texts
+    assert "theo" not in medication_texts
+
+
+def test_common_vietnamese_diagnoses_get_icd_candidates(client: TestClient) -> None:
+    text = "Tiền sử xơ gan và tăng calci máu. Chẩn đoán u ác trực tràng."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    cirrhosis = next(entity for entity in entities if entity["text"].lower() == "xơ gan")
+    assert cirrhosis["type"] == "CHẨN_ĐOÁN"
+    assert cirrhosis["candidates"] == ["K74.6"]
+
+    hypercalcemia = next(
+        entity for entity in entities if entity["text"].lower() == "tăng calci máu"
+    )
+    assert hypercalcemia["type"] == "CHẨN_ĐOÁN"
+    assert hypercalcemia["candidates"] == ["E83.52"]
+
+    rectal_cancer = next(
+        entity for entity in entities if entity["text"].lower() == "u ác trực tràng"
+    )
+    assert rectal_cancer["type"] == "CHẨN_ĐOÁN"
+    assert rectal_cancer["candidates"] == ["C20"]
+
+
+def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
+    text = (
+        "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
+        "Eliquis, Gleevec, torsemide, insulin glargine và azithromycin."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    expected = {
+        "tylenol": "202433",
+        "vancomycin": "11124",
+        "omeprazole": "7646",
+        "heparin": "5224",
+        "suboxone": "352990",
+        "eliquis": "1364436",
+        "gleevec": "282386",
+        "torsemide": "38413",
+        "insulin glargine": "274783",
+        "azithromycin": "18631",
+    }
+    for text_value, code in expected.items():
+        entity = next(entity for entity in entities if entity["text"].lower() == text_value)
+        assert entity["type"] == "THUỐC"
+        assert entity["candidates"] == [code]
+
+
 def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:
     text = (
         "Tiền sử xơ gan. Bệnh nhân không có khó thở. "

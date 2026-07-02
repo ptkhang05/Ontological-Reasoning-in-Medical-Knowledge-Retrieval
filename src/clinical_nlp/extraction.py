@@ -94,6 +94,48 @@ VI_MEDICATION_TERMS = (
     "natri clorid",
 )
 
+UNKNOWN_MEDICATION_STOPWORDS = {
+    "bằng",
+    "thuốc",
+    "trước",
+    "kháng",
+    "nhiễm",
+    "viêm",
+    "chứng",
+    "tiếp",
+    "ống",
+    "tại",
+    "một",
+    "đều",
+    "theo",
+    "được",
+    "rượu",
+    "bán",
+    "thêm",
+    "lợi",
+    "intravenous",
+    "bảo",
+    "nội",
+    "ngoại",
+    "khám",
+    "chẩn",
+    "chống",
+    "biến",
+    "phình",
+    "máy",
+    "bất",
+    "tình",
+    "các",
+    "băng",
+    "quả",
+}
+UNKNOWN_DISEASE_STOPWORDS = {
+    "thuyên",
+    "nhiễm",
+    "trước",
+    "nghẽn",
+}
+
 
 class RuleBasedExtractor:
     def __init__(self, terminology: TerminologyStore) -> None:
@@ -226,7 +268,11 @@ class RuleBasedExtractor:
             if self._span_has_existing(start, end, existing):
                 continue
             token = text[start:end]
-            if token.lower() in {term.lower() for term in SYMPTOM_TERMS}:
+            token_key = token.lower()
+            if (
+                token_key in UNKNOWN_MEDICATION_STOPWORDS
+                or token_key in {term.lower() for term in SYMPTOM_TERMS}
+            ):
                 continue
             candidates.append(
                 CandidateConcept(
@@ -253,7 +299,12 @@ class RuleBasedExtractor:
         for match in pattern.finditer(text):
             start, end = match.span(1)
             token = text[start:end]
-            if self._span_has_existing(start, end, existing) or token.lower() in symptom_terms:
+            token_key = token.lower()
+            if (
+                self._span_has_existing(start, end, existing)
+                or token_key in symptom_terms
+                or token_key in UNKNOWN_DISEASE_STOPWORDS
+            ):
                 continue
             candidates.append(
                 CandidateConcept(

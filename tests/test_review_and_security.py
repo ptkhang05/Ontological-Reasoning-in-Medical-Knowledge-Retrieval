@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from clinical_nlp.deidentification import Deidentifier
 from clinical_nlp.pipeline import ClinicalPipeline
-from clinical_nlp.schemas import AnalyzeRequest
+from clinical_nlp.schemas import AnalyzeOptions, AnalyzeRequest
 
 
 class RecordingExternalExtractor:
@@ -38,7 +38,7 @@ def test_external_inference_receives_deidentified_text_only() -> None:
     pipeline = ClinicalPipeline(external_extractor=external)
     request = AnalyzeRequest(
         text="John Doe, phone 555-123-4567, reports fever.",
-        options={"allowExternalInference": True},
+        options=AnalyzeOptions(allow_external_inference=True),
     )
 
     response = pipeline.analyze(request)
@@ -55,7 +55,7 @@ def test_external_inference_redacts_names_without_trailing_comma() -> None:
     pipeline = ClinicalPipeline(external_extractor=external)
     request = AnalyzeRequest(
         text="John Doe reports fever. Patient Mary Smith denies cough.",
-        options={"allowExternalInference": True},
+        options=AnalyzeOptions(allow_external_inference=True),
     )
 
     pipeline.analyze(request)
