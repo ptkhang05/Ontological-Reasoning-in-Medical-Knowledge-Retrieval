@@ -11,7 +11,9 @@ DOSAGE_PATTERN = re.compile(
     re.I,
 )
 LAB_VALUE_PATTERN = re.compile(
-    r"\s*(?:is|=|:|là|tăng nhẹ lên)?\s*(\d+(?:\.\d+)?\s*(?:mg/dL|mmol/L|mEq/L|%)?)\b",
+    r"\s*(?:is|=|:|là|tăng\s+là|tăng\s+nhẹ\s+lên|tăng\s+lên|tăng|"
+    r"giảm\s+còn|giảm|cao\s+là)?\s*"
+    r"(\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mmol/L|mEq/L|G/L|%))?)\b",
     re.I,
 )
 

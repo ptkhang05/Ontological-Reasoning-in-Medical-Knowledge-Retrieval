@@ -50,6 +50,24 @@ SYMPTOM_TERMS = (
 LAB_NAMES = (
     "hemoglobin a1c",
     "hba1c",
+    "troponin",
+    "inr",
+    "bạch cầu",
+    "wbc",
+    "alt",
+    "ast",
+    "kali",
+    "hemoglobin",
+    "bnp",
+    "bun",
+    "ure",
+    "tiểu cầu",
+    "phosphate",
+    "anion gap",
+    "pcr",
+    "natri",
+    "lactate",
+    "bilirubin",
     "glucose",
     "sodium",
     "potassium",
@@ -80,6 +98,12 @@ VI_DISEASE_TERMS = (
     "viêm tuyến mồ hôi",
     "ngoại tâm thu nhĩ",
     "ngoại tâm thu thất",
+    "nhồi máu cơ tim vùng vách liên thất, mạn tính và đỉnh",
+    "nhồi máu cơ tim vùng dưới cũ",
+    "nhồi máu cũ nhỏ ở vỏ não đỉnh trái",
+    "nhồi máu cũ nhỏ ở vỏ não",
+    "nhồi máu cơ tim cũ",
+    "nhồi máu cơ tim",
     "nhồi máu",
 )
 
@@ -92,6 +116,21 @@ VI_MEDICATION_TERMS = (
     "laxis",
     "natriclori",
     "natri clorid",
+    "ceftazidime",
+    "zosyn",
+    "nac",
+    "dilaudid",
+    "plavix",
+    "klonopin",
+    "clonidine",
+    "advil",
+    "bumetanide",
+    "albuterol",
+    "ipratropium",
+    "desmopressin",
+    "allopurinol",
+    "prograf",
+    "flagyl",
 )
 
 UNKNOWN_MEDICATION_STOPWORDS = {
@@ -128,6 +167,14 @@ UNKNOWN_MEDICATION_STOPWORDS = {
     "các",
     "băng",
     "quả",
+    "ngay",
+    "đặt",
+    "bắt",
+    "bệnh",
+    "gậy",
+    "thì",
+    "bipap",
+    "nitrateskhi",
 }
 UNKNOWN_DISEASE_STOPWORDS = {
     "thuyên",
@@ -185,6 +232,7 @@ class RuleBasedExtractor:
                 "terminology_match",
             )
         )
+        candidates.extend(self._extract_compacted_medications(text, candidates))
         candidates.extend(self._extract_patient_info(text))
         candidates.extend(self._extract_unknown_medications(text, candidates))
         candidates.extend(self._extract_unknown_diseases(text, candidates))
@@ -252,6 +300,49 @@ class RuleBasedExtractor:
                         source="rule_patient_info",
                     )
                 )
+        return candidates
+
+    def _extract_compacted_medications(
+        self, text: str, existing: list[CandidateConcept]
+    ) -> list[CandidateConcept]:
+        terms = {
+            term.lower()
+            for term in (
+                *VI_MEDICATION_TERMS,
+                *self._terminology.search_terms_for(ConceptType.MEDICATION),
+            )
+            if len(term) >= 5 and " " not in term
+        }
+        token_pattern = re.compile(r"[A-Za-zÀ-ỹ][A-Za-zÀ-ỹ-]{7,}", re.I)
+        candidates: list[CandidateConcept] = []
+        seen: set[tuple[int, int]] = set()
+        for token_match in token_pattern.finditer(text):
+            token = token_match.group(0)
+            token_lower = token.lower()
+            if token_lower in terms:
+                continue
+            for term in sorted(terms, key=lambda value: (-len(value), value)):
+                search_start = 0
+                while True:
+                    index = token_lower.find(term, search_start)
+                    if index == -1:
+                        break
+                    start = token_match.start() + index
+                    end = start + len(term)
+                    search_start = index + 1
+                    if (start, end) in seen or self._span_has_existing(start, end, existing):
+                        continue
+                    seen.add((start, end))
+                    candidates.append(
+                        CandidateConcept(
+                            text=text[start:end],
+                            start_offset=start,
+                            end_offset=end,
+                            concept_type=ConceptType.MEDICATION,
+                            confidence=0.82,
+                            source="compacted_medication",
+                        )
+                    )
         return candidates
 
     def _extract_unknown_medications(

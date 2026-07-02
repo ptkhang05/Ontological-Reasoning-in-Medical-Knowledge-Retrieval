@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from clinical_nlp.schemas import ContextAttributes, Polarity, Subject, Temporality
 
 NEGATION_CUES = (
@@ -67,20 +69,28 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
     before = text[max(sentence_start, start - 80) : start].lower()
 
     polarity = Polarity.PRESENT
-    if any(cue in before for cue in NEGATION_CUES):
+    if has_any_cue(before, NEGATION_CUES):
         polarity = Polarity.NEGATED
-    elif any(cue in sentence for cue in POSSIBLE_CUES):
+    elif has_any_cue(sentence, POSSIBLE_CUES):
         polarity = Polarity.POSSIBLE
 
-    subject = Subject.FAMILY if any(cue in sentence for cue in FAMILY_CUES) else Subject.PATIENT
+    subject = Subject.FAMILY if has_any_cue(sentence, FAMILY_CUES) else Subject.PATIENT
 
     temporality = Temporality.CURRENT
-    if any(cue in sentence for cue in HISTORY_CUES):
+    if has_any_cue(sentence, HISTORY_CUES):
         temporality = Temporality.HISTORICAL
-    elif any(cue in sentence for cue in HYPOTHETICAL_CUES):
+    elif has_any_cue(sentence, HYPOTHETICAL_CUES):
         temporality = Temporality.HYPOTHETICAL
 
     return ContextAttributes(polarity=polarity, subject=subject, temporality=temporality)
+
+
+def has_any_cue(text: str, cues: tuple[str, ...]) -> bool:
+    return any(has_cue(text, cue) for cue in cues)
+
+
+def has_cue(text: str, cue: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(cue)}(?!\w)", text, re.I) is not None
 
 
 def sentence_bounds(text: str, start: int, end: int) -> tuple[int, int]:

@@ -140,6 +140,32 @@ def test_common_vietnamese_diagnoses_get_icd_candidates(client: TestClient) -> N
     assert rectal_cancer["candidates"] == ["C20"]
 
 
+def test_public_cardioliver_diagnoses_get_icd_candidates(client: TestClient) -> None:
+    text = (
+        "Triệu chứng hiện tại: hội chứng não gan. "
+        "Điện tâm đồ gợi ý nhồi máu cơ tim vùng dưới cũ."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    hepatic_encephalopathy = next(
+        entity for entity in entities if entity["text"].lower() == "hội chứng não gan"
+    )
+    assert hepatic_encephalopathy["type"] == "CHẨN_ĐOÁN"
+    assert hepatic_encephalopathy["candidates"] == ["K76.82"]
+
+    old_mi = next(
+        entity
+        for entity in entities
+        if entity["text"].lower() == "nhồi máu cơ tim vùng dưới cũ"
+    )
+    assert old_mi["type"] == "CHẨN_ĐOÁN"
+    assert old_mi["candidates"] == ["I25.2"]
+
+
 def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
@@ -167,6 +193,90 @@ def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> 
         entity = next(entity for entity in entities if entity["text"].lower() == text_value)
         assert entity["type"] == "THUỐC"
         assert entity["candidates"] == [code]
+
+
+def test_compacted_public_medications_are_split_and_mapped(client: TestClient) -> None:
+    text = (
+        "Ở nhà bệnh nhân đã sử dụng atenololtrong ngày. "
+        "Đã điều trị vancomycinvà ceftazidime trong 7 ngày. "
+        "Tiếp tục sử dụng doxycyclinebactrim và sau đó dùng zosyn. "
+        "Bệnh nhân cần dùng gậy hỗ trợ đi lại."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "THUỐC"
+    }
+
+    assert medication_by_text["atenolol"]["candidates"] == ["1202"]
+    assert medication_by_text["vancomycin"]["candidates"] == ["11124"]
+    assert medication_by_text["ceftazidime"]["candidates"] == ["2191"]
+    assert medication_by_text["doxycycline"]["candidates"] == ["3640"]
+    assert medication_by_text["bactrim"]["candidates"] == ["151399"]
+    assert medication_by_text["zosyn"]["candidates"] == ["74170"]
+
+    assert "atenololtrong" not in medication_by_text
+    assert "vancomycinvà" not in medication_by_text
+    assert "doxycyclinebactrim" not in medication_by_text
+    assert "gậy" not in medication_by_text
+
+
+def test_medication_expansion_stops_at_conjunctions(client: TestClient) -> None:
+    text = (
+        "Bệnh nhân được dùng guaifenesin và furosemide 40 mg đường uống "
+        "nhưng triệu chứng không cải thiện. Đau ngực giảm sau khi dùng nitro và dilaudid 3mg."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    assert medication_by_text["guaifenesin"]["candidates"] == ["5032"]
+    assert medication_by_text["furosemide 40 mg đường uống"]["candidates"] == ["4603"]
+    assert medication_by_text["nitro"]["candidates"] == ["4917"]
+    assert medication_by_text["dilaudid 3mg"]["candidates"] == ["224913"]
+    assert not any("không cải thiện" in text for text in medication_by_text)
+    assert "nitro và dilaudid 3mg" not in medication_by_text
+
+
+def test_common_public_labs_extract_names_and_values(client: TestClient) -> None:
+    text = (
+        "Kết quả xét nghiệm: troponin là 0.03. INR là 1.4. "
+        "Bạch cầu tăng là 39.2. ALT là 176 và AST là 287. "
+        "Kali là 6.6 mmol/l. Hemoglobin 7.8. BNP 21,000."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    lab_names = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"]
+        for entity in entities
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {"troponin", "inr", "bạch cầu", "alt", "ast", "kali", "hemoglobin", "bnp"}.issubset(
+        lab_names
+    )
+    assert {"0.03", "1.4", "39.2", "176", "287", "6.6 mmol/l", "7.8", "21,000"}.issubset(
+        lab_values
+    )
 
 
 def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:

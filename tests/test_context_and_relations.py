@@ -24,6 +24,23 @@ def test_context_detects_negation_family_subject_and_history(client: TestClient)
     assert hypertension["context"]["temporality"] == "HISTORICAL"
 
 
+def test_family_subject_cues_do_not_match_inside_words(client: TestClient) -> None:
+    text = "Bệnh nhân khó thở khi xem TV và đang dùng furosemide."
+
+    response = client.post("/v1/analyze", json={"text": text})
+
+    assert response.status_code == 200
+    concepts = response.json()["concepts"]
+
+    dyspnea = next(concept for concept in concepts if concept["text"].lower() == "khó thở")
+    assert dyspnea["context"]["subject"] == "PATIENT"
+
+    furosemide = next(
+        concept for concept in concepts if concept["text"].lower() == "furosemide"
+    )
+    assert furosemide["context"]["subject"] == "PATIENT"
+
+
 def test_relations_capture_treatment_dosage_and_lab_value(client: TestClient) -> None:
     text = "Metformin 500 mg for type 2 diabetes. Glucose 250 mg/dL."
 
