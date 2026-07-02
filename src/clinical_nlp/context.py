@@ -16,6 +16,14 @@ NEGATION_CUES = (
     "chưa ghi nhận",
     "chưa phát hiện",
 )
+IGNORED_VI_NEGATION_PREFIXES = (
+    "khỏe",
+    "rõ",
+    "đáp ứng",
+    "dung nạp",
+    "liên quan",
+    "cải thiện",
+)
 POSSIBLE_CUES = (
     "possible",
     "probable",
@@ -69,7 +77,7 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
     before = text[max(sentence_start, start - 80) : start].lower()
 
     polarity = Polarity.PRESENT
-    if has_any_cue(before, NEGATION_CUES):
+    if is_negated(before):
         polarity = Polarity.NEGATED
     elif has_any_cue(sentence, POSSIBLE_CUES):
         polarity = Polarity.POSSIBLE
@@ -87,6 +95,27 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
 
 def has_any_cue(text: str, cues: tuple[str, ...]) -> bool:
     return any(has_cue(text, cue) for cue in cues)
+
+
+def is_negated(before: str) -> bool:
+    explicit_cues = tuple(cue for cue in NEGATION_CUES if cue != "không")
+    if has_any_cue(before, explicit_cues):
+        return True
+    return has_actionable_vietnamese_negation(before)
+
+
+def has_actionable_vietnamese_negation(before: str) -> bool:
+    for match in reversed(list(re.finditer(r"(?<!\w)không(?!\w)", before, re.I))):
+        following = before[match.end() :].strip(" \t:-,;")
+        if not following:
+            return True
+        if any(
+            following.startswith(prefix)
+            for prefix in IGNORED_VI_NEGATION_PREFIXES
+        ):
+            continue
+        return True
+    return False
 
 
 def has_cue(text: str, cue: str) -> bool:

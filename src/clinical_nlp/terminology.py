@@ -265,6 +265,15 @@ def demo_entries() -> list[TerminologyEntry]:
             source_url=CMS_ICD10_URL,
         ),
         TerminologyEntry(
+            concept_type=ConceptType.DISEASE,
+            code_system="ICD-10-CM",
+            code="D36.9",
+            preferred_term="Benign neoplasm, unspecified site",
+            synonyms=("u tuyến",),
+            release_id="clinical-seed-see-cms",
+            source_url=CMS_ICD10_URL,
+        ),
+        TerminologyEntry(
             concept_type=ConceptType.MEDICATION,
             code_system="RxNorm",
             code="6809",

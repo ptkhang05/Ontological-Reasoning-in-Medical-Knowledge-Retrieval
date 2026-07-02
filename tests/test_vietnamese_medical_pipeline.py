@@ -166,6 +166,18 @@ def test_public_cardioliver_diagnoses_get_icd_candidates(client: TestClient) -> 
     assert old_mi["candidates"] == ["I25.2"]
 
 
+def test_unspecified_adenoma_gets_icd_candidate(client: TestClient) -> None:
+    text = "Sinh thiết chỉ cho thấy một u tuyến."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    adenoma = next(entity for entity in entities if entity["text"].lower() == "u tuyến")
+    assert adenoma["type"] == "CHẨN_ĐOÁN"
+    assert adenoma["candidates"] == ["D36.9"]
+
+
 def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
@@ -277,6 +289,44 @@ def test_common_public_labs_extract_names_and_values(client: TestClient) -> None
     assert {"0.03", "1.4", "39.2", "176", "287", "6.6 mmol/l", "7.8", "21,000"}.issubset(
         lab_values
     )
+
+
+def test_common_public_symptoms_are_extracted_with_assertions(
+    client: TestClient,
+) -> None:
+    text = (
+        "Bệnh nhân không có ớn lạnh hoặc khò khè. "
+        "Hiện có ho ra máu, đau lưng, đau cổ, chướng bụng, táo bón, "
+        "ban đỏ, sưng, ngứa, ảo giác và mất trí nhớ."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptom_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    expected_symptoms = {
+        "ớn lạnh",
+        "khò khè",
+        "ho ra máu",
+        "đau lưng",
+        "đau cổ",
+        "chướng bụng",
+        "táo bón",
+        "ban đỏ",
+        "sưng",
+        "ngứa",
+        "ảo giác",
+        "mất trí nhớ",
+    }
+    assert expected_symptoms.issubset(symptom_by_text)
+    assert symptom_by_text["ớn lạnh"]["assertions"] == ["isNegated"]
+    assert symptom_by_text["khò khè"]["assertions"] == ["isNegated"]
+    assert symptom_by_text["ho ra máu"]["assertions"] == []
 
 
 def test_btc_endpoint_returns_competition_schema(client: TestClient) -> None:
