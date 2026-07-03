@@ -11,9 +11,55 @@ DOSAGE_PATTERN = re.compile(
     re.I,
 )
 LAB_VALUE_PATTERN = re.compile(
-    r"\s*(?:is|=|:|là|tăng\s+là|tăng\s+nhẹ\s+lên|tăng\s+lên|tăng|"
-    r"giảm\s+còn|giảm|cao\s+là)?\s*"
-    r"(\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mmol/L|mEq/L|G/L|%))?)\b",
+    r"[\s:)]*(?:\([^)]*\)\s*)?"
+    r"(?:(?:cho\s+thấy|ghi\s+nhận|kết\s+quả)\s+[^.;,\n]{0,80}?\s+)?"
+    r"(?:is|=|:|là|tăng\s+là|tăng\s+nhẹ\s+lên|tăng\s+lên|tăng|"
+    r"giảm\s+còn|giảm|cao\s+là|trả\s+về\s+là)?\s*"
+    r"("
+    r"\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?"
+    r"|không\s+có\s+gì\s+đáng\s+chú\s+ý"
+    r"|không\s+có\s+bất\s+thường(?:\s+[^.;,\n()]+)?"
+    r"|không\s+ghi\s+nhận\s+gì\s+bất\s+thường"
+    r"|không\s+phát\s+hiện(?:\s+[^.;,\n()]+)?"
+    r"|chưa\s+phát\s+hiện(?:\s+[^.;,\n()]+)?"
+    r"|không\s+thấy(?:\s+[^.;,\n()]+)?"
+    r"|tế\s+bào\s+bất\s+thường"
+    r"|bất\s+thường"
+    r"|nhịp\s+xoang"
+    r"|âm\s+tính"
+    r"|dương\s+tính"
+    r"|bình\s+thường"
+    r"|tăng\s+nhẹ"
+    r"|tăng\s+cao"
+    r"|tăng"
+    r"|giảm"
+    r"|cao"
+    r"|thấp"
+    r")\b",
+    re.I,
+)
+LAB_VALUE_SEARCH_PATTERN = re.compile(
+    r"("
+    r"\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?"
+    r"|không\s+có\s+gì\s+đáng\s+chú\s+ý"
+    r"|không\s+có\s+bất\s+thường(?:\s+[^.;,\n()]+)?"
+    r"|không\s+ghi\s+nhận\s+gì\s+bất\s+thường"
+    r"|không\s+phát\s+hiện(?:\s+[^.;,\n()]+)?"
+    r"|chưa\s+phát\s+hiện(?:\s+[^.;,\n()]+)?"
+    r"|không\s+thấy(?:\s+[^.;,\n()]+)?"
+    r"|tế\s+bào\s+bất\s+thường"
+    r"|bất\s+thường"
+    r"|nhịp\s+xoang"
+    r"|âm\s+tính"
+    r"|dương\s+tính"
+    r"|bình\s+thường"
+    r"|tăng\s+nhẹ"
+    r"|tăng\s+cao"
+    r"|tăng"
+    r"|giảm"
+    r"|cao"
+    r"|thấp"
+    r")\b",
     re.I,
 )
 
@@ -77,6 +123,8 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
     _, sentence_end = sentence_bounds(text, lab.start_offset, lab.end_offset)
     tail = text[lab.end_offset:sentence_end]
     match = LAB_VALUE_PATTERN.match(tail)
+    if match is None:
+        match = LAB_VALUE_SEARCH_PATTERN.search(tail)
     if match is None:
         return []
     value_start = lab.end_offset + match.start(1)

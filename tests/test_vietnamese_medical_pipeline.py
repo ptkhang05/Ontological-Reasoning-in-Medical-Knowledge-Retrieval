@@ -245,6 +245,118 @@ def test_common_public_acute_diagnoses_get_icd_candidates(client: TestClient) ->
         assert entity["candidates"] == [code]
 
 
+def test_additional_public_diagnoses_get_icd_candidates(client: TestClient) -> None:
+    text = (
+        "Chẩn đoán viêm túi mật cấp, viêm dạ dày, viêm dạ dày ruột do virus, "
+        "u ác của tuyến tiền liệt, đa u tủy xương, thiếu máu, xẹp phổi, "
+        "tràn dịch màng phổi, nhiễm trùng đường tiết niệu và sỏi mật."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    expected = {
+        "viêm túi mật cấp": "K81.0",
+        "viêm dạ dày": "K29.70",
+        "viêm dạ dày ruột do virus": "A08.4",
+        "u ác của tuyến tiền liệt": "C61",
+        "đa u tủy xương": "C90.00",
+        "thiếu máu": "D64.9",
+        "xẹp phổi": "J98.11",
+        "tràn dịch màng phổi": "J90",
+        "nhiễm trùng đường tiết niệu": "N39.0",
+        "sỏi mật": "K80.20",
+    }
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    for text_value, code in expected.items():
+        entity = diagnosis_by_text[text_value]
+        assert entity["candidates"] == [code]
+
+
+def test_public_imaging_and_chronic_findings_get_icd_candidates(client: TestClient) -> None:
+    text = (
+        "Kết quả chẩn đoán: tim to, tràn dịch màng tim, khí phế thủng, thoát vị hoành, "
+        "hẹp van động mạch chủ, hở van hai lá, chèn ép tim, xuất huyết dưới nhện, "
+        "tụ máu dưới màng cứng, loét tá tràng, tắc nghẽn đường mật, nốt tuyến giáp, "
+        "u xơ tử cung, bàng quang thần kinh, liệt hai chi dưới, rối loạn lo âu và cổ trướng."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    expected = {
+        "tim to": "I51.7",
+        "tràn dịch màng tim": "I31.39",
+        "khí phế thủng": "J43.9",
+        "thoát vị hoành": "K44.9",
+        "hẹp van động mạch chủ": "I35.0",
+        "hở van hai lá": "I34.0",
+        "chèn ép tim": "I31.4",
+        "xuất huyết dưới nhện": "I60.9",
+        "tụ máu dưới màng cứng": "I62.00",
+        "loét tá tràng": "K26.9",
+        "tắc nghẽn đường mật": "K83.1",
+        "nốt tuyến giáp": "E04.1",
+        "u xơ tử cung": "D25.9",
+        "bàng quang thần kinh": "N31.9",
+        "liệt hai chi dưới": "G82.20",
+        "rối loạn lo âu": "F41.9",
+        "cổ trướng": "R18.8",
+    }
+    for text_value, code in expected.items():
+        assert diagnosis_by_text[text_value]["candidates"] == [code]
+
+
+def test_history_section_marks_conditions_historical(client: TestClient) -> None:
+    text = (
+        "1. Tiền sử bệnh nội khoa\n"
+        "- tăng huyết áp\n"
+        "- đái tháo đường\n"
+        "2. Bệnh sử hiện tại\n"
+        "Bệnh nhân khó thở và đau ngực."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    entity_by_text = {entity["text"].lower(): entity for entity in entities}
+
+    assert entity_by_text["tăng huyết áp"]["assertions"] == ["isHistorical"]
+    assert entity_by_text["đái tháo đường"]["assertions"] == ["isHistorical"]
+    assert entity_by_text["khó thở"]["assertions"] == []
+    assert entity_by_text["đau ngực"]["assertions"] == []
+
+
+def test_family_observer_sentences_do_not_mark_patient_symptoms_as_family(
+    client: TestClient,
+) -> None:
+    text = (
+        "Gia đình nhận thấy khó khăn khi cài cúc áo và kéo khóa quần. "
+        "Mẹ có tiền sử tăng huyết áp."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entity_by_text = {entity["text"].lower(): entity for entity in response.json()}
+
+    assert entity_by_text["khó khăn khi cài cúc áo"]["assertions"] == []
+    assert "isFamily" in entity_by_text["tăng huyết áp"]["assertions"]
+
+
 def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
@@ -328,6 +440,32 @@ def test_medication_expansion_stops_at_conjunctions(client: TestClient) -> None:
     assert "nitro và dilaudid 3mg" not in medication_by_text
 
 
+def test_public_medication_aliases_get_rxnorm_candidates(client: TestClient) -> None:
+    text = (
+        "Đang điều trị cotrimoxazol, doxycyclin, ertapenem, morphine, "
+        "Percocet, Seroquel, iron, toradol và vicodin."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    assert medication_by_text["cotrimoxazol"]["candidates"] == ["10831"]
+    assert medication_by_text["doxycyclin"]["candidates"] == ["3640"]
+    assert medication_by_text["ertapenem"]["candidates"] == ["325642"]
+    assert medication_by_text["morphine"]["candidates"] == ["7052"]
+    assert medication_by_text["percocet"]["candidates"] == ["42844"]
+    assert medication_by_text["seroquel"]["candidates"] == ["83553"]
+    assert medication_by_text["iron"]["candidates"] == ["90176"]
+    assert medication_by_text["toradol"]["candidates"] == ["35827"]
+    assert medication_by_text["vicodin"]["candidates"] == ["214182"]
+
+
 def test_common_public_labs_extract_names_and_values(client: TestClient) -> None:
     text = (
         "Kết quả xét nghiệm: troponin là 0.03. INR là 1.4. "
@@ -356,6 +494,79 @@ def test_common_public_labs_extract_names_and_values(client: TestClient) -> None
     assert {"0.03", "1.4", "39.2", "176", "287", "6.6 mmol/l", "7.8", "21,000"}.issubset(
         lab_values
     )
+
+
+def test_public_imaging_and_qualitative_results_are_extracted(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả chẩn đoán hình ảnh: chụp x-quang ngực không phát hiện viêm phổi. "
+        "Điện tâm đồ (ECG) bình thường. "
+        "Chụp ct sọ não: âm tính. "
+        "Siêu âm thận cho thấy chỉ số kháng trở bình thường. "
+        "Công thức máu (CBC) tăng nhẹ lên 11.3."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    lab_names = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {
+        "chụp x-quang ngực",
+        "điện tâm đồ (ecg)",
+        "chụp ct sọ não",
+        "siêu âm thận",
+        "công thức máu (cbc)",
+    }.issubset(lab_names)
+    assert {
+        "không phát hiện viêm phổi",
+        "bình thường",
+        "âm tính",
+        "11.3",
+    }.issubset(lab_values)
+
+
+def test_public_procedure_labs_and_abnormal_results_are_extracted(
+    client: TestClient,
+) -> None:
+    text = (
+        "Monitor holter cho thấy nhịp xoang. Sinh thiết và lấy mẫu bằng bàn chải "
+        "cho thấy tế bào bất thường. Chọc hút bằng kim nhỏ nốt tuyến giáp ghi nhận bất thường."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    lab_names = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {
+        "monitor holter",
+        "sinh thiết",
+        "lấy mẫu bằng bàn chải",
+        "chọc hút bằng kim nhỏ",
+    }.issubset(lab_names)
+    assert {"nhịp xoang", "tế bào bất thường", "bất thường"}.issubset(lab_values)
 
 
 def test_common_public_symptoms_are_extracted_with_assertions(

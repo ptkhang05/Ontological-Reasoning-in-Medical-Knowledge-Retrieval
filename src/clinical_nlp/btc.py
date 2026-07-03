@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from clinical_nlp.context import sentence_bounds
 from clinical_nlp.schemas import (
     AnalyzeResponse,
     Concept,
@@ -76,6 +77,39 @@ MEDICATION_HISTORY_CUES = (
     "tiền sử dùng",
     "home medication",
     "prior medication",
+)
+HISTORY_SECTION_CUES = (
+    "tiền sử bệnh nội khoa",
+    "tiền sử bệnh lý",
+    "tiền sử bệnh",
+    "tiền sử phẫu thuật",
+    "lịch sử phẫu thuật",
+    "bệnh mạn tính",
+    "các bệnh lý mãn tính",
+    "các tình trạng bệnh lý mạn tính",
+)
+CURRENT_SECTION_CUES = (
+    "bệnh sử hiện tại",
+    "bệnh sử  hiện tại",
+    "bệnh sử  hin tại",
+    "tiền sử bệnh hiện tại",
+    "tiền sử bệnh bệnh hiện tại",
+    "lý do nhập viện",
+    "lý do khám bệnh",
+    "kết quả khám",
+    "kết quả xét nghiệm",
+    "kết quả chẩn đoán",
+    "kết quả chụp",
+    "cận lâm sàng",
+    "tình trạng ngay trước",
+    "chẩn đoán:",
+    "chẩn đoán sơ bộ",
+)
+FAMILY_OBSERVER_CUES = (
+    "gia đình nhận thấy",
+    "gia đình lo ngại",
+    "gia đình yêu cầu",
+    "gia đình cho biết",
 )
 
 
@@ -152,9 +186,13 @@ def _assertions_for(
     assertions: list[BtcAssertion] = []
     if concept.context.polarity == Polarity.NEGATED:
         assertions.append(BtcAssertion.NEGATED)
-    if concept.context.subject == Subject.FAMILY:
+    if concept.context.subject == Subject.FAMILY and not _has_family_observer_cue(
+        source_text, entity_start_offset
+    ):
         assertions.append(BtcAssertion.FAMILY)
-    if concept.context.temporality == Temporality.HISTORICAL:
+    if concept.context.temporality == Temporality.HISTORICAL or _has_history_section_cue(
+        source_text, entity_start_offset
+    ):
         assertions.append(BtcAssertion.HISTORICAL)
     if (
         concept_type == ConceptType.MEDICATION
@@ -168,6 +206,27 @@ def _assertions_for(
 def _has_medication_history_cue(source_text: str, entity_start_offset: int) -> bool:
     before = source_text[max(0, entity_start_offset - 220) : entity_start_offset].lower()
     return any(cue in before for cue in MEDICATION_HISTORY_CUES)
+
+
+def _has_family_observer_cue(source_text: str, entity_start_offset: int) -> bool:
+    sentence_start, _ = sentence_bounds(
+        source_text, entity_start_offset, entity_start_offset
+    )
+    before = source_text[sentence_start:entity_start_offset].lower()
+    return any(cue in before for cue in FAMILY_OBSERVER_CUES)
+
+
+def _has_history_section_cue(source_text: str, entity_start_offset: int) -> bool:
+    before = source_text[max(0, entity_start_offset - 900) : entity_start_offset].lower()
+    last_history = _last_cue_index(before, HISTORY_SECTION_CUES)
+    if last_history == -1:
+        return False
+    last_current = _last_cue_index(before, CURRENT_SECTION_CUES)
+    return last_history > last_current
+
+
+def _last_cue_index(text: str, cues: tuple[str, ...]) -> int:
+    return max((text.rfind(cue) for cue in cues), default=-1)
 
 
 def _candidates_for(concept: Concept) -> list[str]:
