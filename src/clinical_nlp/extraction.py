@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from rapidfuzz import fuzz
+
 from clinical_nlp.schemas import ConceptType
-from clinical_nlp.terminology import TerminologyStore
+from clinical_nlp.terminology import TerminologyStore, fold_term
 
 
 @dataclass(frozen=True)
@@ -16,6 +18,14 @@ class CandidateConcept:
     confidence: float
     source: str
 
+
+@dataclass(frozen=True)
+class FuzzySearchTerm:
+    text: str
+    folded: str
+
+
+TOKEN_PATTERN = re.compile(r"[^\W_]+(?:[-/][^\W_]+)?", re.UNICODE)
 
 SYMPTOM_TERMS = (
     "shortness of breath",
@@ -365,6 +375,9 @@ UNKNOWN_DISEASE_STOPWORDS = {
 class RuleBasedExtractor:
     def __init__(self, terminology: TerminologyStore) -> None:
         self._terminology = terminology
+        self._fuzzy_disease_terms = _build_fuzzy_terms(
+            self._terminology.search_terms_for(ConceptType.DISEASE)
+        )
 
     def extract(self, text: str) -> list[CandidateConcept]:
         candidates: list[CandidateConcept] = []
@@ -410,6 +423,16 @@ class RuleBasedExtractor:
                 "terminology_match",
             )
         )
+        candidates.extend(
+            self._extract_fuzzy_terms(
+                text,
+                self._fuzzy_disease_terms,
+                ConceptType.DISEASE,
+                0.82,
+                "fuzzy_terminology_match",
+                candidates,
+            )
+        )
         candidates.extend(self._extract_compacted_medications(text, candidates))
         candidates.extend(self._extract_patient_info(text))
         candidates.extend(self._extract_unknown_medications(text, candidates))
@@ -437,6 +460,62 @@ class RuleBasedExtractor:
                         text=text[match.start() : match.end()],
                         start_offset=match.start(),
                         end_offset=match.end(),
+                        concept_type=concept_type,
+                        confidence=confidence,
+                        source=source,
+                    )
+                )
+        return candidates
+
+    def _extract_fuzzy_terms(
+        self,
+        text: str,
+        terms_by_token_count: dict[int, list[FuzzySearchTerm]],
+        concept_type: ConceptType,
+        confidence: float,
+        source: str,
+        existing: list[CandidateConcept],
+    ) -> list[CandidateConcept]:
+        token_matches = list(TOKEN_PATTERN.finditer(text))
+        if not token_matches:
+            return []
+
+        token_folds = [fold_term(match.group(0)) for match in token_matches]
+        candidates: list[CandidateConcept] = []
+        seen: set[tuple[int, int]] = set()
+        for start_index in range(len(token_matches)):
+            for token_count, terms in terms_by_token_count.items():
+                end_index = start_index + token_count
+                if end_index > len(token_matches):
+                    continue
+                start = token_matches[start_index].start()
+                end = token_matches[end_index - 1].end()
+                if (start, end) in seen or self._span_has_existing(
+                    start, end, [*existing, *candidates]
+                ):
+                    continue
+                folded_window = " ".join(token_folds[start_index:end_index])
+                if len(folded_window) < 8:
+                    continue
+                best_score = 0.0
+                best_term: FuzzySearchTerm | None = None
+                for term in terms:
+                    if abs(len(folded_window) - len(term.folded)) > max(
+                        4, int(len(term.folded) * 0.15)
+                    ):
+                        continue
+                    score = fuzz.ratio(folded_window, term.folded)
+                    if score > best_score:
+                        best_score = score
+                        best_term = term
+                if best_term is None or best_score < 96.0:
+                    continue
+                seen.add((start, end))
+                candidates.append(
+                    CandidateConcept(
+                        text=text[start:end],
+                        start_offset=start,
+                        end_offset=end,
                         concept_type=concept_type,
                         confidence=confidence,
                         source=source,
@@ -632,6 +711,25 @@ def _is_blocked_medication_context(text: str, start: int, end: int) -> bool:
         "khí oxy",
     )
     return any(cue in nearby for cue in measurement_cues)
+
+
+def _build_fuzzy_terms(terms: list[str]) -> dict[int, list[FuzzySearchTerm]]:
+    grouped: dict[int, list[FuzzySearchTerm]] = {}
+    for term in terms:
+        if not _has_non_ascii(term):
+            continue
+        folded = fold_term(term)
+        token_count = len(folded.split())
+        if len(folded) < 8 or token_count < 2:
+            continue
+        grouped.setdefault(token_count, []).append(
+            FuzzySearchTerm(text=term, folded=folded)
+        )
+    return grouped
+
+
+def _has_non_ascii(text: str) -> bool:
+    return any(ord(character) > 127 for character in text)
 
 
 def remove_overlaps(candidates: list[CandidateConcept]) -> list[CandidateConcept]:

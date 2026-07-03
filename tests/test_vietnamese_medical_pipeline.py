@@ -309,6 +309,29 @@ def test_high_confidence_public_diagnosis_findings_get_icd_candidates(
         assert entity["candidates"] == [code]
 
 
+def test_fuzzy_diagnosis_matching_handles_missing_or_wrong_diacritics(
+    client: TestClient,
+) -> None:
+    text = (
+        "Chẩn đoán hep van dong mach chu nghiem trong. "
+        "Nghi ngờ nhiễm khuẩn đường tiết niẹu."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["hep van dong mach chu nghiem trong"]["candidates"] == [
+        "I35.0"
+    ]
+    assert diagnosis_by_text["nhiễm khuẩn đường tiết niẹu"]["candidates"] == ["N39.0"]
+
+
 def test_public_imaging_and_chronic_findings_get_icd_candidates(client: TestClient) -> None:
     text = (
         "Kết quả chẩn đoán: tim to, tràn dịch màng tim, khí phế thủng, thoát vị hoành, "

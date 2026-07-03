@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import csv
+import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
+
+from rapidfuzz import fuzz
 
 from clinical_nlp.schemas import ConceptType
 
@@ -30,11 +34,15 @@ class TerminologyStore:
     def __init__(self, entries: list[TerminologyEntry]) -> None:
         self._entries = entries
         self._index: dict[tuple[ConceptType, str], TerminologyEntry] = {}
+        self._folded_index: dict[tuple[ConceptType, str], TerminologyEntry] = {}
         for entry in entries:
             for term in entry.search_terms():
                 normalized = normalize_term(term)
                 if normalized:
                     self._index[(entry.concept_type, normalized)] = entry
+                folded = fold_term(term)
+                if folded:
+                    self._folded_index[(entry.concept_type, folded)] = entry
 
     @classmethod
     def default(cls, directory: Path | None = None) -> TerminologyStore:
@@ -53,7 +61,41 @@ class TerminologyStore:
 
     def lookup(self, text: str, concept_type: str | ConceptType) -> TerminologyEntry | None:
         normalized_type = ConceptType(concept_type)
-        return self._index.get((normalized_type, normalize_term(text)))
+        return self._index.get((normalized_type, normalize_term(text))) or self._folded_index.get(
+            (normalized_type, fold_term(text))
+        )
+
+    def lookup_fuzzy(
+        self,
+        text: str,
+        concept_type: str | ConceptType,
+        *,
+        score_cutoff: float = 96.0,
+    ) -> TerminologyEntry | None:
+        normalized_type = ConceptType(concept_type)
+        folded_text = fold_term(text)
+        if len(folded_text) < 8 or len(folded_text.split()) < 2:
+            return None
+
+        best_entry: TerminologyEntry | None = None
+        best_score = 0.0
+        for (entry_type, folded_term), entry in self._folded_index.items():
+            if entry_type != normalized_type:
+                continue
+            if len(folded_term) < 8 or len(folded_term.split()) < 2:
+                continue
+            if abs(len(folded_text) - len(folded_term)) > max(
+                4, int(len(folded_term) * 0.15)
+            ):
+                continue
+            score = fuzz.ratio(folded_text, folded_term)
+            if score > best_score:
+                best_score = score
+                best_entry = entry
+
+        if best_score < score_cutoff:
+            return None
+        return best_entry
 
     def search_terms_for(self, concept_type: ConceptType) -> list[str]:
         terms: set[str] = set()
@@ -103,6 +145,16 @@ def concept_type_for_code_system(code_system: str) -> ConceptType:
 
 def normalize_term(term: str) -> str:
     return " ".join(term.strip().lower().replace("-", " ").split())
+
+
+def fold_term(term: str) -> str:
+    normalized = unicodedata.normalize("NFD", term.lower().replace("đ", "d"))
+    without_marks = "".join(
+        character
+        for character in normalized
+        if unicodedata.category(character) != "Mn"
+    )
+    return " ".join(re.findall(r"[a-z0-9]+", without_marks))
 
 
 def _icd10_entry(

@@ -101,6 +101,11 @@ class ClinicalPipeline:
         normalized = NormalizedConcept()
         if candidate.concept_type in {ConceptType.DISEASE, ConceptType.MEDICATION}:
             entry = self._terminology.lookup(original_text, candidate.concept_type)
+            if entry is None and candidate.source == "fuzzy_terminology_match":
+                entry = self._terminology.lookup_fuzzy(
+                    original_text,
+                    candidate.concept_type,
+                )
             if entry is not None:
                 normalized = NormalizedConcept(
                     code_system=entry.code_system,
