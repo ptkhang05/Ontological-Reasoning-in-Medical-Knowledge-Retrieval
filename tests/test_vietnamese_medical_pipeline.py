@@ -279,6 +279,36 @@ def test_additional_public_diagnoses_get_icd_candidates(client: TestClient) -> N
         assert entity["candidates"] == [code]
 
 
+def test_high_confidence_public_diagnosis_findings_get_icd_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Hình ảnh cho thấy hẹp van động mạch chủ nghiêm trọng, "
+        "sỏi ống dẫn mật chung đoạn cuối, bệnh lý chất trắng và bệnh thận đa nang. "
+        "Chẩn đoán nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    expected = {
+        "hẹp van động mạch chủ nghiêm trọng": "I35.0",
+        "sỏi ống dẫn mật chung đoạn cuối": "K80.50",
+        "bệnh lý chất trắng": "R90.82",
+        "bệnh thận đa nang": "Q61.3",
+        "nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin": "A41.01",
+    }
+    for text_value, code in expected.items():
+        entity = diagnosis_by_text[text_value]
+        assert entity["candidates"] == [code]
+
+
 def test_public_imaging_and_chronic_findings_get_icd_candidates(client: TestClient) -> None:
     text = (
         "Kết quả chẩn đoán: tim to, tràn dịch màng tim, khí phế thủng, thoát vị hoành, "
@@ -433,11 +463,54 @@ def test_medication_expansion_stops_at_conjunctions(client: TestClient) -> None:
     }
 
     assert medication_by_text["guaifenesin"]["candidates"] == ["5032"]
-    assert medication_by_text["furosemide 40 mg đường uống"]["candidates"] == ["4603"]
+    assert medication_by_text["furosemide 40 mg đường uống"]["candidates"] == ["315971"]
     assert medication_by_text["nitro"]["candidates"] == ["4917"]
-    assert medication_by_text["dilaudid 3mg"]["candidates"] == ["224913"]
+    assert medication_by_text["dilaudid 3mg"]["candidates"] == ["897751"]
     assert not any("không cải thiện" in text for text in medication_by_text)
     assert "nitro và dilaudid 3mg" not in medication_by_text
+
+
+def test_oxygen_saturation_context_is_not_medication(client: TestClient) -> None:
+    text = "SpO2 99%, độ bão hòa oxy ổn định. Không dùng oxy."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    oxygen_medications = [
+        entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC" and entity["text"].lower() == "oxy"
+    ]
+    assert len(oxygen_medications) == 1
+    assert oxygen_medications[0]["position"] == [
+        text.rindex("oxy"),
+        text.rindex("oxy") + len("oxy"),
+    ]
+    assert oxygen_medications[0]["assertions"] == ["isNegated"]
+
+
+def test_prefixed_medication_dose_and_route_are_included(client: TestClient) -> None:
+    text = (
+        "Các thủ thuật đã thực hiện\n"
+        "- Nhận 80mg lasix iv\n"
+        "- Nhận 2 sl ntg\n"
+        "- Nhận asa\n"
+        "- Được cho 10mg iv diltiazem"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    assert medication_by_text["80mg lasix iv"]["candidates"] == ["566621"]
+    assert medication_by_text["2 sl ntg"]["candidates"] == ["4917"]
+    assert medication_by_text["asa"]["candidates"] == ["1191"]
+    assert medication_by_text["10mg iv diltiazem"]["candidates"] == ["1791228"]
 
 
 def test_public_medication_aliases_get_rxnorm_candidates(client: TestClient) -> None:

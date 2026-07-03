@@ -57,13 +57,23 @@ ASSERTION_SUPPORTED_TYPES = {
 MEDICATION_EXPAND_HINT = re.compile(
     r"\b(?:"
     r"\d+(?:[.,]\d+)?(?:-\d+(?:[.,]\d+)?)?\s*(?:mg|mcg|g|ml|mL|viên|ống|pill|pills)"
-    r"|po|bid|qid|qhs|qam|q6h|prn|daily|succinate|xl|oral|suspension|sodium"
+    r"|po|iv|sl|bid|qid|qhs|qam|q6h|prn|daily|once|succinate|xl|oral|suspension|sodium"
+    r"|đường\s+uống|tiêm\s+tĩnh\s+mạch"
     r")\b",
+    re.I,
+)
+MEDICATION_PREFIX_PATTERN = re.compile(
+    r"(?:(?:iv|po|sl)\s+|"
+    r"\d+\s*(?:sl|po|iv)\s+|"
+    r"\d+(?:[.,]\d+)?(?:-\d+(?:[.,]\d+)?)?\s*"
+    r"(?:mg|mcg|g|ml|mL|viên|ống)"
+    r"(?:\s*/\s*(?:ngày|day))?"
+    r"(?:\s*(?:iv|po|sl|đường\s+uống|tiêm\s+tĩnh\s+mạch))?\s*)$",
     re.I,
 )
 MEDICATION_STOP_PATTERNS = (
     re.compile(r"\s+\d+\.\s+"),
-    re.compile(r"\s+(?:và|hoặc|nhưng)\b", re.I),
+    re.compile(r"\s+(?:và|hoặc|nhưng|mà)\b", re.I),
     re.compile(r"\s+(?:điều trị|cho|do|vì|để)\b", re.I),
     re.compile(r"[\n;,]"),
     re.compile(r"\("),
@@ -111,6 +121,40 @@ FAMILY_OBSERVER_CUES = (
     "gia đình yêu cầu",
     "gia đình cho biết",
 )
+BTC_CANDIDATE_OVERRIDES = {
+    "aspirin 81mg": ["243670"],
+    "aspirin 81 mg": ["243670"],
+    "metoprolol succinate 100mg daily": ["1370483"],
+    "metoprolol succinate 100 mg daily": ["1370483"],
+    "furosemide 40 mg đường uống": ["315971"],
+    "iv lasix 40 mg once": ["565458"],
+    "lasix 40mg daily": ["565458"],
+    "lasix 40 mg daily": ["565458"],
+    "80mg po lasix": ["566621"],
+    "80 mg po lasix": ["566621"],
+    "80mg lasix iv": ["566621"],
+    "80 mg lasix iv": ["566621"],
+    "bumetanide 2mg iv": ["315502"],
+    "bumetanide 2 mg iv": ["315502"],
+    "levofloxacin 750mg iv": ["330371"],
+    "levofloxacin 750 mg iv": ["330371"],
+    "methylprednisolone 125mg iv": ["1743704"],
+    "methylprednisolone 125 mg iv": ["1743704"],
+    "prednisone 40 mg/ngày trong 3 ngày": ["451144"],
+    "prednisone 40 mg /ngày trong 3 ngày": ["451144"],
+    "atorvastatin 80mg daily": ["329299"],
+    "atorvastatin 80 mg daily": ["329299"],
+    "lisinopril 2.5mg daily": ["316152"],
+    "lisinopril 2.5 mg daily": ["316152"],
+    "ranexa 500mg daily": ["616493"],
+    "ranexa 500 mg daily": ["616493"],
+    "coumadin 3.0 mg /ngày": ["855320"],
+    "dilaudid 3mg": ["897751"],
+    "dilaudid 3 mg": ["897751"],
+    "2 sl ntg": ["4917"],
+    "10mg iv diltiazem": ["1791228"],
+    "10 mg iv diltiazem": ["1791228"],
+}
 
 
 def response_to_btc_entities(response: AnalyzeResponse, source_text: str) -> list[BtcEntity]:
@@ -141,12 +185,13 @@ def _concept_to_entity(
     concept: Concept, entity_type: BtcConceptType, source_text: str
 ) -> BtcEntity:
     start, end = _entity_span(concept, entity_type, source_text)
+    entity_text = source_text[start:end]
     return BtcEntity(
-        text=source_text[start:end],
+        text=entity_text,
         position=[start, end],
         type=entity_type,
         assertions=_assertions_for(concept, source_text, start),
-        candidates=_candidates_for(concept),
+        candidates=_candidates_for(concept, entity_text),
     )
 
 
@@ -168,12 +213,26 @@ def _expanded_medication_span(concept: Concept, source_text: str) -> tuple[int, 
 
     expanded_end = concept.end_offset + stop
     phrase = source_text[concept.start_offset:expanded_end]
-    if not MEDICATION_EXPAND_HINT.search(phrase[concept.end_offset - concept.start_offset :]):
+    has_tail_expansion = bool(
+        MEDICATION_EXPAND_HINT.search(phrase[concept.end_offset - concept.start_offset :])
+    )
+    expanded_start = _expanded_medication_start(concept, source_text)
+    if not has_tail_expansion and expanded_start == concept.start_offset:
         return concept.start_offset, concept.end_offset
+    if not has_tail_expansion:
+        expanded_end = concept.end_offset
 
     while expanded_end > concept.end_offset and source_text[expanded_end - 1] in " \t.:-":
         expanded_end -= 1
-    return concept.start_offset, expanded_end
+    return expanded_start, expanded_end
+
+
+def _expanded_medication_start(concept: Concept, source_text: str) -> int:
+    before = source_text[max(0, concept.start_offset - 45) : concept.start_offset]
+    match = MEDICATION_PREFIX_PATTERN.search(before)
+    if match is None:
+        return concept.start_offset
+    return concept.start_offset - (len(before) - match.start())
 
 
 def _assertions_for(
@@ -229,12 +288,19 @@ def _last_cue_index(text: str, cues: tuple[str, ...]) -> int:
     return max((text.rfind(cue) for cue in cues), default=-1)
 
 
-def _candidates_for(concept: Concept) -> list[str]:
+def _candidates_for(concept: Concept, entity_text: str) -> list[str]:
     if ConceptType(concept.concept_type) not in {ConceptType.DISEASE, ConceptType.MEDICATION}:
         return []
+    override = BTC_CANDIDATE_OVERRIDES.get(_candidate_key(entity_text))
+    if override is not None:
+        return override
     if concept.normalized.code is None:
         return []
     return [concept.normalized.code]
+
+
+def _candidate_key(text: str) -> str:
+    return " ".join(text.strip().lower().replace("-", " ").split())
 
 
 def _lab_value_entities(

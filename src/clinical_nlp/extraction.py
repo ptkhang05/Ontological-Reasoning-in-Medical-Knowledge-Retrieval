@@ -428,6 +428,10 @@ class RuleBasedExtractor:
         for term in sorted(set(terms), key=lambda value: (-len(value), value.lower())):
             pattern = re.compile(rf"(?<!\w){re.escape(term)}(?!\w)", re.I)
             for match in pattern.finditer(text):
+                if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
+                    text, match.start(), match.end()
+                ):
+                    continue
                 candidates.append(
                     CandidateConcept(
                         text=text[match.start() : match.end()],
@@ -593,6 +597,41 @@ class RuleBasedExtractor:
             start < candidate.end_offset and candidate.start_offset < end
             for candidate in existing
         )
+
+
+def _is_blocked_medication_context(text: str, start: int, end: int) -> bool:
+    term = text[start:end].lower()
+    if term not in {"oxy", "oxygen"}:
+        return False
+
+    before = text[max(0, start - 35) : start].lower()
+    after = text[end : min(len(text), end + 25)].lower()
+    before_with_term = f"{before}{term}"
+    nearby = f"{before_with_term}{after}"
+
+    treatment_cues = (
+        "dùng oxy",
+        "không dùng oxy",
+        "thở oxy",
+        "không thở oxy",
+        "cho bệnh nhân thở oxy",
+        "điều trị bằng oxy",
+    )
+    if any(cue in before_with_term for cue in treatment_cues):
+        return False
+    if term == "oxygen" and after.lstrip().startswith("therapy"):
+        return False
+
+    measurement_cues = (
+        "độ bão hòa",
+        "bão hòa",
+        "spo2",
+        "sao2",
+        "chỉ số",
+        "thiếu oxy",
+        "khí oxy",
+    )
+    return any(cue in nearby for cue in measurement_cues)
 
 
 def remove_overlaps(candidates: list[CandidateConcept]) -> list[CandidateConcept]:

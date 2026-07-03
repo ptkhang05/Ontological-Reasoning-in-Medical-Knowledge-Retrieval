@@ -196,7 +196,11 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "J18.9",
             "Pneumonia, unspecified organism",
-            ("viêm phổi",),
+            (
+                "viêm phổi",
+                "viêm phổi thùy dưới phải",
+                "viêm phổi thùy dưới phải (rll pna)",
+            ),
         ),
         _icd10_entry(
             "A41.9",
@@ -261,12 +265,16 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "K81.0",
             "Acute cholecystitis",
-            ("viêm túi mật cấp", "viêm túi mật cấp tính"),
+            (
+                "viêm túi mật cấp",
+                "viêm túi mật cấp tính",
+                "viêm túi mật thủng cấp tính",
+            ),
         ),
         _icd10_entry(
             "K81.9",
             "Cholecystitis, unspecified",
-            ("viêm túi mật",),
+            ("viêm túi mật", "viêm túi mật không biến chứng"),
         ),
         _icd10_entry(
             "K29.70",
@@ -309,6 +317,7 @@ def demo_entries() -> list[TerminologyEntry]:
             (
                 "nhiễm trùng đường tiết niệu",
                 "nhiễm khuẩn đường tiết niệu",
+                "nhiễm khuẩn đường tiết niệu, vị trí không xác định",
                 "nhiễm trùng đường vào tiết niệu",
             ),
         ),
@@ -380,7 +389,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I35.0",
             "Nonrheumatic aortic valve stenosis",
-            ("hẹp van động mạch chủ",),
+            ("hẹp van động mạch chủ", "hẹp van động mạch chủ nghiêm trọng"),
         ),
         _icd10_entry(
             "I34.0",
@@ -400,7 +409,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I60.9",
             "Nontraumatic subarachnoid hemorrhage, unspecified",
-            ("xuất huyết dưới nhện",),
+            ("xuất huyết dưới nhện", "xuất huyết dưới nhện vùng trán phải"),
         ),
         _icd10_entry(
             "I62.00",
@@ -445,7 +454,11 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "K80.50",
             "Calculus of bile duct without cholangitis or cholecystitis without obstruction",
-            ("sỏi ống mật",),
+            (
+                "sỏi ống mật",
+                "sỏi ống dẫn mật chung",
+                "sỏi ống dẫn mật chung đoạn cuối",
+            ),
         ),
         _icd10_entry(
             "E04.1",
@@ -659,6 +672,60 @@ def demo_entries() -> list[TerminologyEntry]:
             release_id="clinical-seed-see-cms",
             source_url=CMS_ICD10_URL,
         ),
+        _icd10_entry(
+            "Q61.3",
+            "Polycystic kidney, unspecified",
+            ("bệnh thận đa nang",),
+        ),
+        _icd10_entry(
+            "T86.11",
+            "Kidney transplant rejection",
+            (
+                "đào thải ghép thận",
+                "đào thải kháng thể hữu hình cấp tính",
+                "đào thải kháng thể hữu hình cấp tính (trong sinh thiết)",
+            ),
+        ),
+        _icd10_entry(
+            "R90.82",
+            "White matter disease, unspecified",
+            ("bệnh lý chất trắng",),
+        ),
+        _icd10_entry(
+            "A41.01",
+            "Sepsis due to Methicillin susceptible Staphylococcus aureus",
+            (
+                "nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin",
+                (
+                    "nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin, "
+                    "nghi liên quan đến đường truyền tĩnh mạch trung tâm"
+                ),
+            ),
+        ),
+        _icd10_entry(
+            "I71.012",
+            "Dissection of descending thoracic aorta",
+            (
+                "bóc tách động mạch chủ loại b",
+                "tổn thương bóc tách động mạch chủ stanford loại b",
+            ),
+        ),
+        _icd10_entry(
+            "I70.1",
+            "Atherosclerosis of renal artery",
+            (
+                "hẹp động mạch thận",
+                "tắc hẹp 80% động mạch thận trái",
+            ),
+        ),
+        _icd10_entry(
+            "I77.0",
+            "Arteriovenous fistula, acquired",
+            (
+                "rò động - tĩnh mạch đùi phải",
+                "rò động - tĩnh mạch đùi phải do thủ thuật can thiệp",
+            ),
+        ),
         TerminologyEntry(
             concept_type=ConceptType.MEDICATION,
             code_system="RxNorm",
@@ -673,7 +740,7 @@ def demo_entries() -> list[TerminologyEntry]:
             code_system="RxNorm",
             code="1191",
             preferred_term="aspirin",
-            synonyms=("aspirin",),
+            synonyms=("aspirin", "asa"),
             release_id="demo-seed-see-rxnorm",
             source_url=RXNORM_URL,
         ),
@@ -835,7 +902,7 @@ def demo_entries() -> list[TerminologyEntry]:
             code_system="RxNorm",
             code="4917",
             preferred_term="nitroglycerin",
-            synonyms=("nitroglycerin", "nitro"),
+            synonyms=("nitroglycerin", "nitro", "ntg"),
             release_id="rxnav-api-2026-07-02",
             source_url=RXNORM_API_URL,
         ),
@@ -1288,5 +1355,14 @@ def demo_entries() -> list[TerminologyEntry]:
             synonyms=("lisinopril",),
             release_id="demo-seed-see-rxnorm",
             source_url=RXNORM_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="3443",
+            preferred_term="diltiazem",
+            synonyms=("diltiazem",),
+            release_id="rxnav-api-2026-07-03",
+            source_url=RXNORM_API_URL,
         ),
     ]
