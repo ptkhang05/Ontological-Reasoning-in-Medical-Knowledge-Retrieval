@@ -898,6 +898,15 @@ def demo_entries() -> list[TerminologyEntry]:
         TerminologyEntry(
             concept_type=ConceptType.MEDICATION,
             code_system="RxNorm",
+            code="4839",
+            preferred_term="glucocorticoids",
+            synonyms=("corticoid", "corticoids", "glucocorticoids"),
+            release_id="rxnav-approximate-2026-07-03",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
             code="214182",
             preferred_term="hydrocodone / acetaminophen",
             synonyms=("hydrocodone acetaminophen", "vicodin"),

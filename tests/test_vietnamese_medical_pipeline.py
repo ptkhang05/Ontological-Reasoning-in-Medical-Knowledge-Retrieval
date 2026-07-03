@@ -536,6 +536,25 @@ def test_prefixed_medication_dose_and_route_are_included(client: TestClient) -> 
     assert medication_by_text["10mg iv diltiazem"]["candidates"] == ["1791228"]
 
 
+def test_medication_expansion_does_not_include_dose_change_sentence(
+    client: TestClient,
+) -> None:
+    text = "Prograf dose decreased from 5mg bid to 1mg bid. Tiếp tục corticoid liều cao."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    assert medication_by_text["prograf"]["candidates"] == ["196463"]
+    assert "prograf dose decreased from 5mg bid to 1mg bid" not in medication_by_text
+    assert medication_by_text["corticoid"]["candidates"] == ["4839"]
+
+
 def test_public_medication_aliases_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang điều trị cotrimoxazol, doxycyclin, ertapenem, morphine, "

@@ -73,6 +73,7 @@ MEDICATION_PREFIX_PATTERN = re.compile(
 )
 MEDICATION_STOP_PATTERNS = (
     re.compile(r"\s+\d+\.\s+"),
+    re.compile(r"\s+dose\b", re.I),
     re.compile(r"\s+(?:và|hoặc|nhưng|mà)\b", re.I),
     re.compile(r"\s+(?:điều trị|cho|do|vì|để)\b", re.I),
     re.compile(r"[\n;,]"),
