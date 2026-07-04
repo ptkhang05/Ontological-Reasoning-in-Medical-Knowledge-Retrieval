@@ -74,11 +74,15 @@ MEDICATION_PREFIX_PATTERN = re.compile(
 MEDICATION_STOP_PATTERNS = (
     re.compile(r"\s+\d+\.\s+"),
     re.compile(r"\s+dose\b", re.I),
-    re.compile(r"\s+(?:và|hoặc|nhưng|mà)\b", re.I),
+    re.compile(r"\s+(?:và|hoặc|nhưng|mà|and|or|but)\b", re.I),
     re.compile(r"\s+(?:điều trị|cho|do|vì|để)\b", re.I),
     re.compile(r"[\n;,]"),
     re.compile(r"\("),
     re.compile(r"(?<!\d)\.(?!\d)"),
+)
+DIAGNOSIS_TRIM_PATTERNS = (
+    re.compile(r",\s+(?:nghi|nghi ngờ|có thể|khả năng|liên quan)\b", re.I),
+    re.compile(r"\s+\((?:nghi|có thể|khả năng)[^)]+\)", re.I),
 )
 MEDICATION_HISTORY_CUES = (
     "thuốc trước khi nhập viện",
@@ -107,12 +111,19 @@ CURRENT_SECTION_CUES = (
     "tiền sử bệnh bệnh hiện tại",
     "lý do nhập viện",
     "lý do khám bệnh",
+    "triệu chứng hiện tại",
+    "các triệu chứng hiện tại",
+    "triệu chứng khi nhập viện",
+    "triệu chứng khi đến",
     "kết quả khám",
     "kết quả xét nghiệm",
     "kết quả chẩn đoán",
     "kết quả chụp",
     "cận lâm sàng",
+    "đánh giá tại bệnh viện",
+    "khám tại bệnh viện",
     "tình trạng ngay trước",
+    "tình trạng ngay trước khi nhập viện",
     "chẩn đoán:",
     "chẩn đoán sơ bộ",
 )
@@ -155,6 +166,51 @@ BTC_CANDIDATE_OVERRIDES = {
     "2 sl ntg": ["4917"],
     "10mg iv diltiazem": ["1791228"],
     "10 mg iv diltiazem": ["1791228"],
+    "metoprolol 5mg iv x2": ["335209"],
+    "metoprolol 5 mg iv x2": ["335209"],
+    "laxis 20mg tiêm tĩnh mạch": ["565450"],
+    "laxis 20 mg tiêm tĩnh mạch": ["565450"],
+    "lasix 20mg tiêm tĩnh mạch": ["565450"],
+    "lasix 20 mg tiêm tĩnh mạch": ["565450"],
+    "bệnh trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
+    "trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
+}
+BTC_CODE_CANDIDATE_OVERRIDES = {
+    "I26.99": ["I26.9", "I26.99"],
+    "I31.39": ["I31.3", "I31.39"],
+    "I62.00": ["I62.0", "I62.00"],
+    "I48.91": ["I48.9", "I48.91"],
+    "I65.29": ["I65.2", "I65.29"],
+    "I71.012": ["I71.0", "I71.012"],
+    "I25.10": ["I25.1", "I25.10"],
+    "I47.10": ["I47.1", "I47.10"],
+    "A41.01": ["A41.0", "A41.01"],
+    "C50.919": ["C50.9", "C50.919"],
+    "C90.00": ["C90.0", "C90.00"],
+    "C92.10": ["C92.1", "C92.10"],
+    "E78.00": ["E78.0", "E78.00"],
+    "E83.52": ["E83.5", "E83.52"],
+    "F10.20": ["F10.2", "F10.20"],
+    "F19.10": ["F19.1", "F19.10"],
+    "F32.A": ["F32.9", "F32.A"],
+    "G47.30": ["G47.3", "G47.30"],
+    "G47.33": ["G47.3", "G47.33"],
+    "G82.20": ["G82.2", "G82.20"],
+    "J45.909": ["J45.9", "J45.909"],
+    "J96.90": ["J96.9", "J96.90"],
+    "J98.11": ["J98.1", "J98.11"],
+    "K29.70": ["K29.7", "K29.70"],
+    "K51.90": ["K51.9", "K51.90"],
+    "K57.90": ["K57.9", "K57.90"],
+    "K80.20": ["K80.2", "K80.20"],
+    "K80.50": ["K80.5", "K80.50"],
+    "K22.10": ["K22.1", "K22.10"],
+    "L03.90": ["L03.9", "L03.90"],
+    "M48.00": ["M48.0", "M48.00"],
+    "R45.851": ["R45.8", "R45.851"],
+    "R90.82": ["R90.8", "R90.82"],
+    "S22.42XA": ["S22.4", "S22.42XA"],
+    "T86.11": ["T86.1", "T86.11"],
 }
 
 
@@ -199,12 +255,29 @@ def _concept_to_entity(
 def _entity_span(
     concept: Concept, entity_type: BtcConceptType, source_text: str
 ) -> tuple[int, int]:
-    if entity_type != BtcConceptType.MEDICATION:
-        return concept.start_offset, concept.end_offset
-    return _expanded_medication_span(concept, source_text)
+    if entity_type == BtcConceptType.MEDICATION:
+        return _expanded_medication_span(concept, source_text)
+    if entity_type == BtcConceptType.DIAGNOSIS:
+        return _trimmed_diagnosis_span(concept, source_text)
+    return concept.start_offset, concept.end_offset
+
+
+def _trimmed_diagnosis_span(concept: Concept, source_text: str) -> tuple[int, int]:
+    text = source_text[concept.start_offset : concept.end_offset]
+    end = concept.end_offset
+    for pattern in DIAGNOSIS_TRIM_PATTERNS:
+        match = pattern.search(text)
+        if match is not None:
+            end = min(end, concept.start_offset + match.start())
+    while end > concept.start_offset and source_text[end - 1] in " \t,;:-":
+        end -= 1
+    return concept.start_offset, end
 
 
 def _expanded_medication_span(concept: Concept, source_text: str) -> tuple[int, int]:
+    if _has_stuck_alpha_suffix(concept, source_text):
+        return concept.start_offset, concept.end_offset
+
     tail = source_text[concept.end_offset : min(len(source_text), concept.end_offset + 100)]
     stop = len(tail)
     for pattern in MEDICATION_STOP_PATTERNS:
@@ -228,10 +301,19 @@ def _expanded_medication_span(concept: Concept, source_text: str) -> tuple[int, 
     return expanded_start, expanded_end
 
 
+def _has_stuck_alpha_suffix(concept: Concept, source_text: str) -> bool:
+    return (
+        concept.end_offset < len(source_text)
+        and source_text[concept.end_offset].isalpha()
+    )
+
+
 def _expanded_medication_start(concept: Concept, source_text: str) -> int:
     before = source_text[max(0, concept.start_offset - 45) : concept.start_offset]
     match = MEDICATION_PREFIX_PATTERN.search(before)
     if match is None:
+        return concept.start_offset
+    if match.start() > 0 and before[match.start() - 1].isalpha():
         return concept.start_offset
     return concept.start_offset - (len(before) - match.start())
 
@@ -277,7 +359,7 @@ def _has_family_observer_cue(source_text: str, entity_start_offset: int) -> bool
 
 
 def _has_history_section_cue(source_text: str, entity_start_offset: int) -> bool:
-    before = source_text[max(0, entity_start_offset - 900) : entity_start_offset].lower()
+    before = source_text[:entity_start_offset].lower()
     last_history = _last_cue_index(before, HISTORY_SECTION_CUES)
     if last_history == -1:
         return False
@@ -297,6 +379,9 @@ def _candidates_for(concept: Concept, entity_text: str) -> list[str]:
         return override
     if concept.normalized.code is None:
         return []
+    code_override = BTC_CODE_CANDIDATE_OVERRIDES.get(concept.normalized.code)
+    if code_override is not None:
+        return code_override
     return [concept.normalized.code]
 
 

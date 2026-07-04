@@ -41,6 +41,17 @@ SYMPTOM_TERMS = (
     "thiếu oxy",
     "đánh trống ngực",
     "khó thở",
+    "tiểu tiện không tự chủ",
+    "sa âm đạo",
+    "bàng quang căng",
+    "cảm giác bí tiểu",
+    "cảm giác bí tiếu",
+    "bí tiểu",
+    "bí tiếu",
+    "cơn co tử cung",
+    "ra huyết âm đạo",
+    "vỡ ối",
+    "rỉ ối",
     "thắt chặt ngực",
     "khó chịu vùng ngực",
     "đau ngực",
@@ -68,6 +79,7 @@ SYMPTOM_TERMS = (
     "đau hố chậu",
     "đau bụng",
     "tiêu chảy",
+    "đại tiện ra máu đỏ tươi",
     "đi ngoài ra máu",
     "phân có máu",
     "phân đen",
@@ -85,6 +97,13 @@ SYMPTOM_TERMS = (
     "ngất xỉu",
     "phù ngoại vi",
     "phù chi dưới",
+    "sưng phù hai mắt cá chân",
+    "phù mắt cá chân",
+    "phù hai bên",
+    "phù chân trái",
+    "phù 2 chân",
+    "phù chân",
+    "phù phù",
     "phù",
     "sốt cao",
     "sốt",
@@ -97,6 +116,8 @@ SYMPTOM_TERMS = (
     "đau cổ",
     "đau cổ và vai phải",
     "đau vai",
+    "đau đầu gối phải",
+    "đau vùng xương bánh chè - đùi phải",
     "đau hai bàn chân",
     "đau chân",
     "đau cơ",
@@ -105,6 +126,7 @@ SYMPTOM_TERMS = (
     "khó nuốt",
     "khàn tiếng",
     "giọng khàn",
+    "tổn thương dây thanh quản",
     "chướng bụng",
     "chán ăn",
     "ăn uống kém",
@@ -118,12 +140,15 @@ SYMPTOM_TERMS = (
     "run rẩy",
     "khó chịu",
     "yếu cơ",
-    "yếu",
+    "loét đau",
+    "loét đỏ",
+    "loét sưng",
     "sưng quanh khớp",
     "sưng nề",
     "sưng",
     "đỏ",
     "chảy mủ",
+    "chảy dịch liên tục từ mặt trong của bàn chân trái",
     "chảy dịch",
     "dịch rò rỉ",
     "dịch rỉ",
@@ -146,6 +171,7 @@ SYMPTOM_TERMS = (
     "táo bón",
     "choáng váng",
     "hoa mắt",
+    "phù gai thị",
     "mờ mắt",
     "nhìn mờ",
     "khó nhìn gần",
@@ -157,6 +183,8 @@ SYMPTOM_TERMS = (
     "nhịp tim nhanh",
     "mạch nhanh",
     "mất ngủ",
+    "gãy xương sườn trái",
+    "tổn thương rõ ràng",
 )
 
 LAB_NAMES = (
@@ -271,6 +299,29 @@ LAB_NAMES = (
 )
 
 VI_DISEASE_TERMS = (
+    "bệnh trào ngược dạ dày - thực quản",
+    "trào ngược dạ dày thực quản",
+    "trào ngược dạ dày - thực quản",
+    "bệnh bạch cầu dòng tủy mãn tính",
+    "bệnh bạch cầu dòng tủy mạn tính",
+    "xuất huyết nội sọ không do chấn thương",
+    "khối máu tụ dưới màng cứng",
+    "não úng thủy khác",
+    "não úng thuỷ khác",
+    "não úng tuỷ khác",
+    "não úng thủy",
+    "não úng thuỷ",
+    "não úng tuỷ",
+    "ung thư biểu mô tế bào mật không thể cắt bỏ",
+    "ung thư biểu mô tế bào mật",
+    "ung thư đường mật không thể cắt bỏ",
+    "ung thư đường mật",
+    "tắc nghẽn kéo dài gần chỗ nối mật tụy",
+    "tắc nghẽn kéo dài gần chỗ nối mật tuỵ",
+    "tắc nghẽn đường mật",
+    "nang tụy",
+    "nang tuỵ",
+    "gãy xương sườn trái",
     "xơ gan",
     "hội chứng não gan",
     "tăng calci máu",
@@ -386,6 +437,7 @@ class RuleBasedExtractor:
                 text, SYMPTOM_TERMS, ConceptType.SYMPTOM, 0.86, "rule_symptom"
             )
         )
+        candidates.extend(self._extract_contextual_symptoms(text))
         candidates.extend(self._extract_labs(text))
         candidates.extend(
             self._extract_terms(
@@ -452,6 +504,10 @@ class RuleBasedExtractor:
             pattern = re.compile(rf"(?<!\w){re.escape(term)}(?!\w)", re.I)
             for match in pattern.finditer(text):
                 if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
+                    text, match.start(), match.end()
+                ):
+                    continue
+                if concept_type == ConceptType.SYMPTOM and _is_blocked_symptom_context(
                     text, match.start(), match.end()
                 ):
                     continue
@@ -528,6 +584,10 @@ class RuleBasedExtractor:
         for lab_name in LAB_NAMES:
             pattern = re.compile(rf"(?<!\w){re.escape(lab_name)}(?!\w)", re.I)
             for match in pattern.finditer(text):
+                if lab_name == "bạch cầu" and _is_leukemia_context(
+                    text, match.start(), match.end()
+                ):
+                    continue
                 candidates.append(
                     CandidateConcept(
                         text=text[match.start() : match.end()],
@@ -536,6 +596,32 @@ class RuleBasedExtractor:
                         concept_type=ConceptType.LAB_RESULT,
                         confidence=0.84,
                         source="rule_lab",
+                    )
+                )
+        return candidates
+
+    def _extract_contextual_symptoms(self, text: str) -> list[CandidateConcept]:
+        candidates: list[CandidateConcept] = []
+        weakness_patterns = (
+            re.compile(
+                r"(?im)(?:^|[.;\n])\s*(?:[-*]\s*)?"
+                r"(?:lý do (?:nhập viện|vào viện|khám bệnh)|"
+                r"(?:các\s+)?triệu chứng(?:\s+hiện tại)?|triệu chứng khi đến)"
+                r"\s*:\s*(yếu)\b"
+            ),
+            re.compile(r"(?im)^\s*[-*]\s*(yếu)\s*$"),
+        )
+        for pattern in weakness_patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span(1)
+                candidates.append(
+                    CandidateConcept(
+                        text=text[start:end],
+                        start_offset=start,
+                        end_offset=end,
+                        concept_type=ConceptType.SYMPTOM,
+                        confidence=0.84,
+                        source="contextual_symptom",
                     )
                 )
         return candidates
@@ -610,6 +696,14 @@ class RuleBasedExtractor:
         self, text: str, existing: list[CandidateConcept]
     ) -> list[CandidateConcept]:
         candidates: list[CandidateConcept] = []
+        known_single_token_medications = {
+            term.lower()
+            for term in (
+                *VI_MEDICATION_TERMS,
+                *self._terminology.search_terms_for(ConceptType.MEDICATION),
+            )
+            if len(term) >= 5 and " " not in term
+        }
         pattern = re.compile(
             r"\b(?:takes|taking|started|on|dùng|sử dụng|điều trị)\s+"
             r"([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ-]{2,})\b",
@@ -624,6 +718,9 @@ class RuleBasedExtractor:
             if (
                 token_key in UNKNOWN_MEDICATION_STOPWORDS
                 or token_key in {term.lower() for term in SYMPTOM_TERMS}
+                or _contains_known_medication_fragment(
+                    token_key, known_single_token_medications
+                )
             ):
                 continue
             candidates.append(
@@ -711,6 +808,23 @@ def _is_blocked_medication_context(text: str, start: int, end: int) -> bool:
         "khí oxy",
     )
     return any(cue in nearby for cue in measurement_cues)
+
+
+def _is_blocked_symptom_context(text: str, start: int, end: int) -> bool:
+    term = text[start:end].lower()
+    if term != "phù":
+        return False
+    after = text[end : min(len(text), end + 12)].lower()
+    return after.lstrip().startswith("hợp")
+
+
+def _is_leukemia_context(text: str, start: int, end: int) -> bool:
+    context = text[max(0, start - 12) : min(len(text), end + 35)].lower()
+    return re.search(r"\bbệnh\s+bạch\s+cầu\b", context) is not None
+
+
+def _contains_known_medication_fragment(token: str, known_medications: set[str]) -> bool:
+    return any(term != token and term in token for term in known_medications)
 
 
 def _build_fuzzy_terms(terms: list[str]) -> dict[int, list[FuzzySearchTerm]]:

@@ -98,6 +98,20 @@ def test_vietnamese_non_tolerance_phrase_does_not_negate_entities(
         assert concept["context"]["polarity"] == "PRESENT"
 
 
+def test_vietnamese_denial_phrase_negates_symptom_list(client: TestClient) -> None:
+    text = "Bệnh nhân phủ nhận buồn nôn, nôn, sốt, ớn lạnh hoặc khó thở."
+
+    response = client.post("/v1/analyze", json={"text": text})
+
+    assert response.status_code == 200
+    concepts = response.json()["concepts"]
+    for text_value in {"buồn nôn", "nôn", "sốt", "ớn lạnh", "khó thở"}:
+        concept = next(
+            concept for concept in concepts if concept["text"].lower() == text_value
+        )
+        assert concept["context"]["polarity"] == "NEGATED"
+
+
 def test_relations_capture_treatment_dosage_and_lab_value(client: TestClient) -> None:
     text = "Metformin 500 mg for type 2 diabetes. Glucose 250 mg/dL."
 

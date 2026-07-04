@@ -255,6 +255,11 @@ def demo_entries() -> list[TerminologyEntry]:
             ),
         ),
         _icd10_entry(
+            "J81",
+            "Pulmonary edema",
+            ("phù phổi",),
+        ),
+        _icd10_entry(
             "A41.9",
             "Sepsis, unspecified organism",
             ("nhiễm trùng huyết",),
@@ -344,6 +349,16 @@ def demo_entries() -> list[TerminologyEntry]:
             ("u ác của tuyến tiền liệt", "ung thư tuyến tiền liệt"),
         ),
         _icd10_entry(
+            "C24.0",
+            "Malignant neoplasm of extrahepatic bile duct",
+            (
+                "ung thư đường mật",
+                "ung thư đường mật không thể cắt bỏ",
+                "ung thư biểu mô tế bào mật",
+                "ung thư biểu mô tế bào mật không thể cắt bỏ",
+            ),
+        ),
+        _icd10_entry(
             "C90.00",
             "Multiple myeloma not having achieved remission",
             ("đa u tủy xương", "đa u tuỷ xương", "bệnh đa u tuỷ xương"),
@@ -416,7 +431,12 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "C92.10",
             "Chronic myeloid leukemia, BCR/ABL-positive, not having achieved remission",
-            ("cml", "bệnh bạch cầu mạn tính dòng tủy"),
+            (
+                "cml",
+                "bệnh bạch cầu mạn tính dòng tủy",
+                "bệnh bạch cầu dòng tủy mãn tính",
+                "bệnh bạch cầu dòng tủy mạn tính",
+            ),
         ),
         _icd10_entry(
             "I51.7",
@@ -437,6 +457,15 @@ def demo_entries() -> list[TerminologyEntry]:
             "K44.9",
             "Diaphragmatic hernia without obstruction or gangrene",
             ("thoát vị hoành",),
+        ),
+        _icd10_entry(
+            "K21.9",
+            "Gastro-esophageal reflux disease without esophagitis",
+            (
+                "bệnh trào ngược dạ dày - thực quản",
+                "trào ngược dạ dày thực quản",
+                "trào ngược dạ dày - thực quản",
+            ),
         ),
         _icd10_entry(
             "I35.0",
@@ -466,12 +495,39 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I62.00",
             "Nontraumatic subdural hemorrhage, unspecified",
-            ("xuất huyết dưới màng cứng", "tụ máu dưới màng cứng"),
+            (
+                "xuất huyết dưới màng cứng",
+                "tụ máu dưới màng cứng",
+                "khối máu tụ dưới màng cứng",
+            ),
+        ),
+        _icd10_entry(
+            "I62.9",
+            "Nontraumatic intracranial hemorrhage, unspecified",
+            ("xuất huyết nội sọ không do chấn thương",),
         ),
         _icd10_entry(
             "I62.1",
             "Nontraumatic extradural hemorrhage",
             ("tụ máu ngoài màng cứng",),
+        ),
+        _icd10_entry(
+            "G91.8",
+            "Other hydrocephalus",
+            (
+                "não úng thủy khác",
+                "não úng thuỷ khác",
+                "não úng tuỷ khác",
+            ),
+        ),
+        _icd10_entry(
+            "G91.9",
+            "Hydrocephalus, unspecified",
+            (
+                "não úng thủy",
+                "não úng thuỷ",
+                "não úng tuỷ",
+            ),
         ),
         _icd10_entry(
             "I47.10",
@@ -496,7 +552,20 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "K83.1",
             "Obstruction of bile duct",
-            ("tắc nghẽn đường mật",),
+            (
+                "tắc nghẽn đường mật",
+                "tắc nghẽn đường dẫn mật",
+                "tắc nghẽn kéo dài gần chỗ nối mật tụy",
+                "tắc nghẽn kéo dài gần chỗ nối mật tuỵ",
+            ),
+        ),
+        _icd10_entry(
+            "K86.2",
+            "Cyst of pancreas",
+            (
+                "nang tụy",
+                "nang tuỵ",
+            ),
         ),
         _icd10_entry(
             "K83.8",
@@ -778,6 +847,11 @@ def demo_entries() -> list[TerminologyEntry]:
                 "rò động - tĩnh mạch đùi phải do thủ thuật can thiệp",
             ),
         ),
+        _icd10_entry(
+            "S22.42XA",
+            "Multiple fractures of ribs, left side, initial encounter for closed fracture",
+            ("gãy xương sườn trái",),
+        ),
         TerminologyEntry(
             concept_type=ConceptType.MEDICATION,
             code_system="RxNorm",
@@ -855,7 +929,7 @@ def demo_entries() -> list[TerminologyEntry]:
             code_system="RxNorm",
             code="7052",
             preferred_term="morphine",
-            synonyms=("morphine", "morphineoral"),
+            synonyms=("morphine",),
             release_id="clinical-seed-see-rxnorm",
             source_url=RXNORM_API_URL,
         ),
@@ -1161,7 +1235,7 @@ def demo_entries() -> list[TerminologyEntry]:
             code_system="RxNorm",
             code="203563",
             preferred_term="Cipro",
-            synonyms=("cipro", "ciproflagyl"),
+            synonyms=("cipro",),
             release_id="rxnav-api-2026-07-02",
             source_url=RXNORM_API_URL,
         ),

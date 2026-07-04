@@ -17,6 +17,8 @@ uvicorn.*.log
 input/
 output/
 submissions/
+.tmp_pdf_check/
+*.pdf
 .venv/
 venv/
 data/terminologies/*.zip

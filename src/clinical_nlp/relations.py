@@ -62,6 +62,25 @@ LAB_VALUE_SEARCH_PATTERN = re.compile(
     r")\b",
     re.I,
 )
+LAB_VALUE_UNIT_PATTERN = re.compile(r"\b(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%)\b", re.I)
+LAB_NUMERIC_PATTERN = re.compile(
+    r"^\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?$",
+    re.I,
+)
+LAB_NUMERIC_CUE_PATTERN = re.compile(
+    r"(?:=|:|\blà\b|\btăng(?:\s+(?:là|nhẹ\s+lên|lên))?\b|"
+    r"\bgiảm(?:\s+còn)?\b|\bcao\s+là\b|\btrả\s+về\s+là\b)",
+    re.I,
+)
+NON_LAB_NUMERIC_CONTEXT_PATTERN = re.compile(
+    r"(?:\bđộ\s*$|\bgrade\s*$|\bthứ\s*$|\bcấp\s*$|"
+    r"\bxương\s+sườn\s*$|\bgãy\s*$|\bc[0-9]?\s*$)",
+    re.I,
+)
+NON_LAB_NUMERIC_CONTEXT_ANYWHERE_PATTERN = re.compile(
+    r"\b(?:xương\s+sườn|hình\s+ảnh\s+gãy|cột\s+sống)\b",
+    re.I,
+)
 
 
 def extract_relations(text: str, concepts: list[Concept]) -> list[Relation]:
@@ -122,9 +141,7 @@ def _dosage_relations(text: str, medication: Concept) -> list[Relation]:
 def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
     _, sentence_end = sentence_bounds(text, lab.start_offset, lab.end_offset)
     tail = text[lab.end_offset:sentence_end]
-    match = LAB_VALUE_PATTERN.match(tail)
-    if match is None:
-        match = LAB_VALUE_SEARCH_PATTERN.search(tail)
+    match = _find_valid_lab_value_match(text, lab, tail)
     if match is None:
         return []
     value_start = lab.end_offset + match.start(1)
@@ -141,6 +158,60 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
             value=text[value_start:value_end],
         )
     ]
+
+
+def _find_valid_lab_value_match(
+    text: str, lab: Concept, tail: str
+) -> re.Match[str] | None:
+    match = LAB_VALUE_PATTERN.match(tail)
+    if match is not None and _is_valid_lab_value_match(text, lab, match):
+        return match
+
+    for search_match in LAB_VALUE_SEARCH_PATTERN.finditer(tail):
+        if _is_valid_lab_value_match(text, lab, search_match):
+            return search_match
+    return None
+
+
+def _is_valid_lab_value_match(
+    text: str, lab: Concept, match: re.Match[str]
+) -> bool:
+    value = match.group(1).strip()
+    if LAB_NUMERIC_PATTERN.fullmatch(value) is None:
+        return True
+
+    value_start = lab.end_offset + match.start(1)
+    value_end = lab.end_offset + match.end(1)
+    between_lab_and_value = text[lab.end_offset:value_start]
+    if _is_non_lab_numeric_context(text, value_start, value_end, between_lab_and_value):
+        return False
+    if LAB_VALUE_UNIT_PATTERN.search(value):
+        return True
+    if "." in value or "," in value:
+        return True
+    return True
+
+
+def _is_non_lab_numeric_context(
+    text: str, value_start: int, value_end: int, before_value: str
+) -> bool:
+    stripped_before = before_value.rstrip()
+    after_value = text[value_end : min(len(text), value_end + 12)]
+    previous_character = text[value_start - 1] if value_start > 0 else ""
+    next_character = text[value_end] if value_end < len(text) else ""
+    before_context = stripped_before[-80:]
+
+    if previous_character.isalpha() or previous_character in "-/":
+        return True
+    if next_character in "-/":
+        return True
+    if NON_LAB_NUMERIC_CONTEXT_ANYWHERE_PATTERN.search(before_context):
+        return True
+    if re.match(r"\s*[/,-]", after_value, re.I) and NON_LAB_NUMERIC_CONTEXT_PATTERN.search(
+        before_context
+    ):
+        return True
+    return NON_LAB_NUMERIC_CONTEXT_PATTERN.search(before_context) is not None
 
 
 def _same_sentence(text: str, left: Concept, right: Concept) -> bool:
