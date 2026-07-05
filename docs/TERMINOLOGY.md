@@ -16,9 +16,11 @@ Supported v1 systems:
 - `ATC` as a future alternate medication code system, not a v1 replacement for
   RxNorm.
 
-The built-in entries are demo seeds so tests and local development work without
-shipping large terminology dumps. Replace them with official local files before
-using this against real workflows.
+The built-in entries are seed data so tests and local development work without
+shipping large terminology dumps. `TerminologyStore.default()` loads those seeds
+first, then appends local CSV rows from `data/terminologies`; local rows win
+exact-term collisions. This keeps RxNorm seed mappings available when the local
+directory only contains a generated ICD-10-TT06 file.
 
 Reference sources:
 
@@ -33,7 +35,7 @@ Reference sources:
 To build a local Vietnamese ICD CSV from the public TT06 API:
 
 ```powershell
-python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv
+python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv --workers 8 --delay-seconds 0
 ```
 
 Generated terminology CSV files named `*.generated.csv` are ignored by git.

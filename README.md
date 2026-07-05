@@ -14,7 +14,7 @@ python -m uvicorn clinical_nlp.api.app:app --reload
 python -m pytest
 python -m ruff check .
 python -m mypy
-python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv
+python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv --workers 8 --delay-seconds 0
 python -m clinical_nlp.cli.batch input/input --output output/output.zip
 ./scripts/build_submission.sh input/input output/output.zip
 ```

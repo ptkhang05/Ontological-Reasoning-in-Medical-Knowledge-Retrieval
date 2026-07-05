@@ -46,11 +46,14 @@ class TerminologyStore:
 
     @classmethod
     def default(cls, directory: Path | None = None) -> TerminologyStore:
+        entries = demo_entries()
         if directory is not None and directory.exists():
-            loaded = cls.from_directory(directory)
-            if loaded._entries:
-                return loaded
-        return cls(demo_entries())
+            # Local terminology augments the seed set so ICD-only CSV exports do not
+            # drop built-in RxNorm medication mappings. Appending local rows lets
+            # source-backed entries win exact-term index collisions.
+            for csv_path in sorted(directory.glob("*.csv")):
+                entries.extend(load_entries_from_csv(csv_path))
+        return cls(entries)
 
     @classmethod
     def from_directory(cls, directory: Path) -> TerminologyStore:

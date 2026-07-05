@@ -9,6 +9,7 @@ import urllib.parse
 import urllib.request
 from collections import deque
 from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,12 @@ def main() -> None:
         default=0,
         help="Debug limit for crawled nodes. 0 means no limit.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of concurrent child-node fetch workers. Defaults to 1.",
+    )
     args = parser.parse_args()
 
     rows = crawl_icd10_tt06(
@@ -63,6 +70,7 @@ def main() -> None:
         leaf_only=args.leaf_only,
         delay_seconds=args.delay_seconds,
         max_nodes=args.max_nodes,
+        workers=args.workers,
     )
     write_terminology_csv(args.output, rows)
     print(f"Wrote {len(rows)} ICD-10 TT06 rows to {args.output}")
@@ -74,6 +82,31 @@ def crawl_icd10_tt06(
     leaf_only: bool = False,
     delay_seconds: float = 0.05,
     max_nodes: int = 0,
+    workers: int = 1,
+) -> list[dict[str, str]]:
+    if workers < 1:
+        raise ValueError("workers must be >= 1")
+    if workers == 1 or max_nodes:
+        return _crawl_icd10_tt06_sequential(
+            language=language,
+            leaf_only=leaf_only,
+            delay_seconds=delay_seconds,
+            max_nodes=max_nodes,
+        )
+    return _crawl_icd10_tt06_parallel(
+        language=language,
+        leaf_only=leaf_only,
+        delay_seconds=delay_seconds,
+        workers=workers,
+    )
+
+
+def _crawl_icd10_tt06_sequential(
+    *,
+    language: str,
+    leaf_only: bool,
+    delay_seconds: float,
+    max_nodes: int,
 ) -> list[dict[str, str]]:
     queue: deque[dict[str, Any]] = deque(fetch_root(language))
     seen_nodes: set[tuple[str, str]] = set()
@@ -104,6 +137,56 @@ def crawl_icd10_tt06(
             children = fetch_children(model, node_id, language)
             queue.extend(children)
             if delay_seconds > 0:
+                time.sleep(delay_seconds)
+
+    return sorted(
+        rows_by_code_and_term.values(),
+        key=lambda row: (_code_sort_key(row["code"]), row["preferred_term"]),
+    )
+
+
+def _crawl_icd10_tt06_parallel(
+    *,
+    language: str,
+    leaf_only: bool,
+    delay_seconds: float,
+    workers: int,
+) -> list[dict[str, str]]:
+    queue: deque[dict[str, Any]] = deque(fetch_root(language))
+    seen_nodes: set[tuple[str, str]] = set()
+    rows_by_code_and_term: dict[tuple[str, str], dict[str, str]] = {}
+    batch_size = max(workers * 8, workers)
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        while queue:
+            child_requests: list[tuple[str, str]] = []
+            for _ in range(min(len(queue), batch_size)):
+                node = queue.popleft()
+                model = str(node.get("model", "")).strip()
+                node_id = str(node.get("id", "")).strip()
+                if not model or not node_id:
+                    continue
+
+                key = (model, node_id)
+                if key in seen_nodes:
+                    continue
+                seen_nodes.add(key)
+
+                row = terminology_row_from_node(node, leaf_only=leaf_only)
+                if row is not None:
+                    rows_by_code_and_term[(row["code"], row["preferred_term"])] = row
+
+                if not bool(node.get("is_leaf", False)):
+                    child_requests.append((model, node_id))
+
+            futures = [
+                executor.submit(fetch_children, model, node_id, language)
+                for model, node_id in child_requests
+            ]
+            for future in as_completed(futures):
+                queue.extend(future.result())
+
+            if futures and delay_seconds > 0:
                 time.sleep(delay_seconds)
 
     return sorted(

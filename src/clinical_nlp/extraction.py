@@ -25,6 +25,7 @@ class FuzzySearchTerm:
     folded: str
 
 
+FUZZY_TERMINOLOGY_TERM_LIMIT = 2_000
 TOKEN_PATTERN = re.compile(r"[^\W_]+(?:[-/][^\W_]+)?", re.UNICODE)
 
 SYMPTOM_TERMS = (
@@ -476,8 +477,25 @@ UNKNOWN_DISEASE_STOPWORDS = {
 class RuleBasedExtractor:
     def __init__(self, terminology: TerminologyStore) -> None:
         self._terminology = terminology
-        self._fuzzy_disease_terms = _build_fuzzy_terms(
+        self._disease_terminology_terms = _extractable_disease_terminology_terms(
             self._terminology.search_terms_for(ConceptType.DISEASE)
+        )
+        self._medication_terminology_terms = self._terminology.search_terms_for(
+            ConceptType.MEDICATION
+        )
+        self._disease_terminology_pattern = _compile_term_pattern(
+            self._disease_terminology_terms
+        )
+        self._medication_terminology_pattern = _compile_term_pattern(
+            self._medication_terminology_terms
+        )
+        fuzzy_disease_terms = (
+            self._disease_terminology_terms
+            if len(self._disease_terminology_terms) <= FUZZY_TERMINOLOGY_TERM_LIMIT
+            else []
+        )
+        self._fuzzy_disease_terms = _build_fuzzy_terms(
+            fuzzy_disease_terms
         )
 
     def extract(self, text: str) -> list[CandidateConcept]:
@@ -509,18 +527,18 @@ class RuleBasedExtractor:
             )
         )
         candidates.extend(
-            self._extract_terms(
+            self._extract_compiled_terms(
                 text,
-                self._terminology.search_terms_for(ConceptType.DISEASE),
+                self._disease_terminology_pattern,
                 ConceptType.DISEASE,
                 0.90,
                 "terminology_match",
             )
         )
         candidates.extend(
-            self._extract_terms(
+            self._extract_compiled_terms(
                 text,
-                self._terminology.search_terms_for(ConceptType.MEDICATION),
+                self._medication_terminology_pattern,
                 ConceptType.MEDICATION,
                 0.90,
                 "terminology_match",
@@ -572,6 +590,34 @@ class RuleBasedExtractor:
                         source=source,
                     )
                 )
+        return candidates
+
+    def _extract_compiled_terms(
+        self,
+        text: str,
+        pattern: re.Pattern[str] | None,
+        concept_type: ConceptType,
+        confidence: float,
+        source: str,
+    ) -> list[CandidateConcept]:
+        if pattern is None:
+            return []
+        candidates: list[CandidateConcept] = []
+        for match in pattern.finditer(text):
+            if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
+                text, match.start(), match.end()
+            ):
+                continue
+            candidates.append(
+                CandidateConcept(
+                    text=text[match.start() : match.end()],
+                    start_offset=match.start(),
+                    end_offset=match.end(),
+                    concept_type=concept_type,
+                    confidence=confidence,
+                    source=source,
+                )
+            )
         return candidates
 
     def _extract_fuzzy_terms(
@@ -918,6 +964,33 @@ def _build_fuzzy_terms(terms: list[str]) -> dict[int, list[FuzzySearchTerm]]:
             FuzzySearchTerm(text=term, folded=folded)
         )
     return grouped
+
+
+def _compile_term_pattern(terms: list[str]) -> re.Pattern[str] | None:
+    unique_terms = sorted(
+        {term for term in terms if term},
+        key=lambda value: (-len(value), value.lower()),
+    )
+    if not unique_terms:
+        return None
+    alternates = "|".join(re.escape(term) for term in unique_terms)
+    return re.compile(rf"(?<!\w)(?:{alternates})(?!\w)", re.I)
+
+
+def _extractable_disease_terminology_terms(terms: list[str]) -> list[str]:
+    blocked_folds = {fold_term(term) for term in (*SYMPTOM_TERMS, *LAB_NAMES) if term}
+    curated_disease_folds = {fold_term(term) for term in VI_DISEASE_TERMS if term}
+    extractable: list[str] = []
+    for term in terms:
+        folded = fold_term(term)
+        if not folded:
+            continue
+        if folded in blocked_folds and folded not in curated_disease_folds:
+            continue
+        if _has_non_ascii(term) and len(folded.split()) < 2:
+            continue
+        extractable.append(term)
+    return extractable
 
 
 def _has_non_ascii(text: str) -> bool:
