@@ -8,7 +8,7 @@ from typing import Any, cast
 
 from clinical_nlp.btc import btc_entities_to_jsonable
 from clinical_nlp.pipeline import ClinicalPipeline
-from clinical_nlp.schemas import AnalyzeRequest
+from clinical_nlp.schemas import AnalyzeOptions, AnalyzeRequest
 
 BTC_ENTITY_KEYS = {"text", "position", "type", "assertions", "candidates"}
 BTC_TYPES = {
@@ -38,6 +38,14 @@ def main() -> None:
         action="store_true",
         help="Skip BTC ZIP schema and offset validation after packaging.",
     )
+    parser.add_argument(
+        "--allow-external-inference",
+        action="store_true",
+        help=(
+            "Use a configured local external extractor, for example a self-hosted "
+            "OpenAI-compatible LLM endpoint from CLINICAL_NLP_LOCAL_LLM_BASE_URL."
+        ),
+    )
     args = parser.parse_args()
 
     package_submission(
@@ -45,11 +53,16 @@ def main() -> None:
         output_zip=args.output,
         language=args.language,
         validate=not args.skip_validation,
+        allow_external_inference=args.allow_external_inference,
     )
 
 
 def package_submission(
-    input_dir: Path, output_zip: Path, language: str = "vi", validate: bool = True
+    input_dir: Path,
+    output_zip: Path,
+    language: str = "vi",
+    validate: bool = True,
+    allow_external_inference: bool = False,
 ) -> Path:
     if not input_dir.exists() or not input_dir.is_dir():
         raise SystemExit(f"Input directory does not exist: {input_dir}")
@@ -64,6 +77,7 @@ def package_submission(
                 document_type="viettel-medical-2026-public",
                 language=language,
                 text=text,
+                options=AnalyzeOptions(allow_external_inference=allow_external_inference),
             )
             response = pipeline.analyze(request)
             archive.writestr(

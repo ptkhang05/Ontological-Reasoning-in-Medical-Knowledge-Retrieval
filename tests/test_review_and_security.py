@@ -17,6 +17,15 @@ class RecordingExternalExtractor:
         return []
 
 
+class StaticExternalExtractor:
+    def __init__(self, entities: list[dict[str, object]]) -> None:
+        self.entities = entities
+
+    def extract(self, text: str) -> list[dict[str, object]]:
+        del text
+        return self.entities
+
+
 def test_review_flags_unmapped_and_safety_sensitive_concepts(client: TestClient) -> None:
     text = "Patient takes zorbium. Allergy to aspirin."
 
@@ -74,6 +83,78 @@ def test_deidentifier_preserves_offsets_when_masking_names_without_commas() -> N
     assert len(deidentified.processed_text) == len(text)
     assert text.index("fever") == deidentified.processed_text.index("fever")
     assert "John Doe" not in deidentified.processed_text
+
+
+def test_external_inference_entities_are_merged_after_offset_validation() -> None:
+    text = "Bệnh nhân mô tả dị cảm ngón út khi nhập viện."
+    extractor = StaticExternalExtractor(
+        [
+            {
+                "text": "dị cảm ngón út",
+                "position": [18, 31],
+                "type": "TRIỆU_CHỨNG",
+            }
+        ]
+    )
+    pipeline = ClinicalPipeline(external_extractor=extractor)
+
+    response = pipeline.analyze(
+        AnalyzeRequest(
+            text=text,
+            options=AnalyzeOptions(allow_external_inference=True),
+        )
+    )
+
+    concept = next(concept for concept in response.concepts if concept.text == "dị cảm ngón út")
+    assert concept.start_offset == text.index("dị cảm ngón út")
+    assert concept.end_offset == concept.start_offset + len("dị cảm ngón út")
+    assert concept.source == "external_inference"
+
+
+def test_external_inference_repairs_position_by_exact_text_match() -> None:
+    text = "Bệnh nhân mô tả dị cảm ngón út khi nhập viện."
+    extractor = StaticExternalExtractor(
+        [
+            {
+                "text": "dị cảm ngón út",
+                "position": [0, 5],
+                "type": "SYMPTOM",
+            }
+        ]
+    )
+    pipeline = ClinicalPipeline(external_extractor=extractor)
+
+    response = pipeline.analyze(
+        AnalyzeRequest(
+            text=text,
+            options=AnalyzeOptions(allow_external_inference=True),
+        )
+    )
+
+    concept = next(concept for concept in response.concepts if concept.text == "dị cảm ngón út")
+    assert concept.start_offset == text.index("dị cảm ngón út")
+
+
+def test_external_inference_skips_unaligned_entities() -> None:
+    extractor = StaticExternalExtractor(
+        [
+            {
+                "text": "không tồn tại trong văn bản",
+                "position": [0, 5],
+                "type": "TRIỆU_CHỨNG",
+            }
+        ]
+    )
+    pipeline = ClinicalPipeline(external_extractor=extractor)
+
+    response = pipeline.analyze(
+        AnalyzeRequest(
+            text="Bệnh nhân ổn định.",
+            options=AnalyzeOptions(allow_external_inference=True),
+        )
+    )
+
+    assert all(concept.text != "không tồn tại trong văn bản" for concept in response.concepts)
 
 
 def test_api_does_not_log_raw_clinical_text(

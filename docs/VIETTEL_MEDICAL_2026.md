@@ -30,6 +30,10 @@ Implementation choices in this repo:
 - Vietnamese is now the default language for `AnalyzeRequest`.
 - The rule-based extractor includes Vietnamese clinical terms observed in the
   local `input/input/*.txt` files.
+- An optional self-hosted OpenAI-compatible LLM extractor can be configured with
+  `CLINICAL_NLP_LOCAL_LLM_BASE_URL` and enabled per request or batch run. It is
+  only a proposal source: spans and types are validated before being merged with
+  deterministic extraction output. Do not point this at an external API.
 - `/v1/analyze/btc` returns the BTC-compatible list-of-entities schema:
   `text`, `position`, `type`, `assertions`, and `candidates`.
 - `python -m clinical_nlp.cli.batch input/input --output output/output.zip`
