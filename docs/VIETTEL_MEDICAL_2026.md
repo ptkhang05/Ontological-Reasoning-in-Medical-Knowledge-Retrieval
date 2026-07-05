@@ -1,11 +1,17 @@
 # Viettel Medical 2026 Alignment
 
-Local requirement PDFs checked on 2026-07-05:
+Local requirement Markdown snapshots checked on 2026-07-06:
 
-- `AI Race 2026 - Cuộc đua AI cho kỹ sư Việt Nam.pdf`
-- `AI Race 2026 - Cuộc đua AI cho kỹ sư Việt Nam 2.pdf`
+- `docs/btc/NLP_1.md`: contest overview, problem statement, entity schema,
+  public data description, and timeline.
+- `docs/btc/NLP_2.md`: phase 1 submission format, output example, scoring
+  formulas, resource rules, and submission limits.
 
-Public facts from the updated PDFs:
+The Markdown snapshots preserve the same phase 1 output contract and scoring
+formula currently implemented in this repo. No API/schema migration is required
+from this update.
+
+Public facts from the updated Markdown files:
 
 - Contest name: `Bài 2 - Ontological Reasoning in Medical Knowledge Retrieval`.
 - Phase 1: `Vòng 1 - Sơ loại`, running from 2026-07-02 to 2026-07-30.
@@ -55,7 +61,7 @@ BTC output contract:
 - BTC clarified that RxNorm version 2026 is used, and ICD-10 uses the
   Vietnamese ICD-10 standard. BTC does not provide additional terminology files.
 
-Latest scoring notes from the local BTC requirement PDF:
+Latest scoring notes from the local BTC requirement Markdown files:
 
 - `final_score = 0.3 * text_score + 0.3 * assertions_score + 0.4 * candidates_score`.
 - `text_score` is based on `1 - WER` over the predicted `text` fields.
