@@ -18,6 +18,7 @@ input/
 output/
 submissions/
 .tmp_pdf_check/
+tmp/
 *.pdf
 .venv/
 venv/

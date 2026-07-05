@@ -3,7 +3,7 @@ import zipfile
 
 from fastapi.testclient import TestClient
 
-from clinical_nlp.cli.batch import package_submission
+from clinical_nlp.cli.batch import package_submission, validate_submission_zip
 
 
 def test_vietnamese_record_extracts_core_contest_concepts(client: TestClient) -> None:
@@ -70,6 +70,39 @@ def test_batch_cli_packages_viettel_zip(tmp_path) -> None:  # type: ignore[no-un
     assert aspirin["type"] == "THUỐC"
     assert aspirin["candidates"] == ["317300"]
     assert "submission.json" not in archive.namelist()
+    assert validate_submission_zip(output_zip, input_dir) == []
+
+
+def test_batch_validator_reports_schema_and_offset_errors(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    (input_dir / "1.txt").write_text("Bệnh nhân ho.", encoding="utf-8")
+    output_zip = tmp_path / "bad.zip"
+    bad_payload = [
+        {
+            "text": "sai",
+            "position": [0, 3],
+            "type": "TRIỆU_CHỨNG",
+            "assertions": [],
+            "candidates": [],
+        },
+        {
+            "text": "ho",
+            "position": [9, 11],
+            "type": "SAI_NHÃN",
+            "assertions": ["isMaybe"],
+            "candidates": "bad",
+        },
+    ]
+    with zipfile.ZipFile(output_zip, "w") as archive:
+        archive.writestr("output/1.json", json.dumps(bad_payload, ensure_ascii=False))
+
+    errors = validate_submission_zip(output_zip, input_dir)
+
+    assert any("does not match source text" in error for error in errors)
+    assert any("invalid type" in error for error in errors)
+    assert any("invalid assertion" in error for error in errors)
+    assert any("candidates must be a list" in error for error in errors)
 
 
 def test_btc_serializer_expands_medication_text_and_historical_context(
