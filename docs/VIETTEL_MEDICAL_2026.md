@@ -64,6 +64,10 @@ BTC output contract:
   are valid. Include the unit only when the source text includes the unit.
 - BTC clarified that RxNorm version 2026 is used, and ICD-10 uses the
   Vietnamese ICD-10 standard. BTC does not provide additional terminology files.
+- The public Vietnamese ICD-10 TT06 browser at
+  `https://icd.kcb.vn/icd-10-tt06/icd10-tt06` exposes a JSON API under
+  `https://ccs.whiteneuron.com/api/ICD10_TT06/`. Use
+  `scripts/build_icd10_tt06.py` to build a local generated CSV when needed.
 
 Latest scoring notes from the local BTC requirement Markdown files:
 

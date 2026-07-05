@@ -25,3 +25,4 @@ venv/
 data/terminologies/*.zip
 data/terminologies/*.rrf
 data/terminologies/*.RRF
+data/terminologies/*.generated.csv
