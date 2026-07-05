@@ -76,6 +76,7 @@ MEDICATION_STOP_PATTERNS = (
     re.compile(r"\s+dose\b", re.I),
     re.compile(r"\s+(?:và|hoặc|nhưng|mà|and|or|but)\b", re.I),
     re.compile(r"\s+(?:điều trị|cho|do|vì|để)\b", re.I),
+    re.compile(r"\s+trong\s+\d+\s+(?:ngày|day|days)\b", re.I),
     re.compile(r"[\n;,]"),
     re.compile(r"\("),
     re.compile(r"(?<!\d)\.(?!\d)"),
@@ -92,6 +93,16 @@ MEDICATION_HISTORY_CUES = (
     "tiền sử dùng",
     "home medication",
     "prior medication",
+)
+MEDICATION_DISCONTINUED_CUE_PATTERNS = (
+    re.compile(r"\bđã\s+hết\b", re.I),
+    re.compile(r"\bhết\b[^.;\n]{0,90}\btrước\b", re.I),
+    re.compile(
+        r"\b(?:ngừng|dừng|ngưng)\s+(?:uống|sử\s+dụng)\b"
+        r"[^.;\n]{0,90}\b(?:trước|cách|sau\s+xuất\s+viện)\b",
+        re.I,
+    ),
+    re.compile(r"\bđã\s+(?:ngừng|dừng|ngưng)\s+sử\s+dụng\b", re.I),
 )
 HISTORY_SECTION_CUES = (
     "tiền sử bệnh nội khoa",
@@ -172,46 +183,58 @@ BTC_CANDIDATE_OVERRIDES = {
     "laxis 20 mg tiêm tĩnh mạch": ["565450"],
     "lasix 20mg tiêm tĩnh mạch": ["565450"],
     "lasix 20 mg tiêm tĩnh mạch": ["565450"],
+    "bicarbonate": ["36676"],
+    "ns 0.9 %": ["313002"],
+    "ns 0.9%": ["313002"],
+    "4000 ml ns 0.9 %": ["313002"],
+    "4000 ml ns 0.9%": ["313002"],
+    "40meq po k": ["2728723"],
+    "40 meq po k": ["2728723"],
+    "40meq iv k": ["2728723"],
+    "40 meq iv k": ["2728723"],
     "bệnh trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
     "trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
 }
 BTC_CODE_CANDIDATE_OVERRIDES = {
-    "I26.99": ["I26.9", "I26.99"],
-    "I31.39": ["I31.3", "I31.39"],
-    "I62.00": ["I62.0", "I62.00"],
-    "I48.91": ["I48.9", "I48.91"],
-    "I65.29": ["I65.2", "I65.29"],
-    "I71.012": ["I71.0", "I71.012"],
-    "I25.10": ["I25.1", "I25.10"],
-    "I47.10": ["I47.1", "I47.10"],
-    "A41.01": ["A41.0", "A41.01"],
-    "C50.919": ["C50.9", "C50.919"],
-    "C90.00": ["C90.0", "C90.00"],
-    "C92.10": ["C92.1", "C92.10"],
-    "E78.00": ["E78.0", "E78.00"],
-    "E83.52": ["E83.5", "E83.52"],
-    "F10.20": ["F10.2", "F10.20"],
-    "F19.10": ["F19.1", "F19.10"],
-    "F32.A": ["F32.9", "F32.A"],
-    "G47.30": ["G47.3", "G47.30"],
-    "G47.33": ["G47.3", "G47.33"],
-    "G82.20": ["G82.2", "G82.20"],
-    "J45.909": ["J45.9", "J45.909"],
-    "J96.90": ["J96.9", "J96.90"],
-    "J98.11": ["J98.1", "J98.11"],
-    "K29.70": ["K29.7", "K29.70"],
-    "K51.90": ["K51.9", "K51.90"],
-    "K57.90": ["K57.9", "K57.90"],
-    "K80.20": ["K80.2", "K80.20"],
-    "K80.50": ["K80.5", "K80.50"],
-    "K22.10": ["K22.1", "K22.10"],
-    "L03.90": ["L03.9", "L03.90"],
-    "M48.00": ["M48.0", "M48.00"],
-    "R45.851": ["R45.8", "R45.851"],
-    "R90.82": ["R90.8", "R90.82"],
-    "S22.42XA": ["S22.4", "S22.42XA"],
-    "T86.11": ["T86.1", "T86.11"],
+    "I26.99": ["I26.9"],
+    "I31.39": ["I31.3"],
+    "I62.00": ["I62.0"],
+    "I48.91": ["I48.9"],
+    "I65.29": ["I65.2"],
+    "I71.012": ["I71.0"],
+    "I25.10": ["I25.1"],
+    "I47.10": ["I47.1"],
+    "A41.01": ["A41.0"],
+    "C34.90": ["C34.9"],
+    "C79.31": ["C79.3"],
+    "C50.919": ["C50.9"],
+    "C90.00": ["C90.0"],
+    "C92.10": ["C92.1"],
+    "E78.00": ["E78.0"],
+    "E83.52": ["E83.5"],
+    "F10.20": ["F10.2"],
+    "F19.10": ["F19.1"],
+    "F32.A": ["F32.9"],
+    "G47.30": ["G47.3"],
+    "G47.33": ["G47.3"],
+    "G82.20": ["G82.2"],
+    "J45.909": ["J45.9"],
+    "J96.90": ["J96.9"],
+    "J98.11": ["J98.1"],
+    "K29.70": ["K29.7"],
+    "K51.90": ["K51.9"],
+    "K57.90": ["K57.9"],
+    "K80.20": ["K80.2"],
+    "K80.50": ["K80.5"],
+    "K22.10": ["K22.1"],
+    "L03.90": ["L03.9"],
+    "M48.00": ["M48.0"],
+    "R45.851": ["R45.8"],
+    "R90.82": ["R90.8"],
+    "S22.42XA": ["S22.4"],
+    "T86.11": ["T86.1"],
 }
+ICD10_CM_DETAIL_PATTERN = re.compile(r"^([A-Z][0-9]{2}\.[0-9]).+$")
 
 
 def response_to_btc_entities(response: AnalyzeResponse, source_text: str) -> list[BtcEntity]:
@@ -339,7 +362,10 @@ def _assertions_for(
     if (
         concept_type == ConceptType.MEDICATION
         and BtcAssertion.HISTORICAL not in assertions
-        and _has_medication_history_cue(source_text, entity_start_offset)
+        and (
+            _has_medication_history_cue(source_text, entity_start_offset)
+            or _has_medication_discontinued_cue(source_text, concept)
+        )
     ):
         assertions.append(BtcAssertion.HISTORICAL)
     return assertions
@@ -348,6 +374,14 @@ def _assertions_for(
 def _has_medication_history_cue(source_text: str, entity_start_offset: int) -> bool:
     before = source_text[max(0, entity_start_offset - 220) : entity_start_offset].lower()
     return any(cue in before for cue in MEDICATION_HISTORY_CUES)
+
+
+def _has_medication_discontinued_cue(source_text: str, concept: Concept) -> bool:
+    sentence_start, sentence_end = sentence_bounds(
+        source_text, concept.start_offset, concept.end_offset
+    )
+    sentence = source_text[sentence_start:sentence_end].lower()
+    return any(pattern.search(sentence) for pattern in MEDICATION_DISCONTINUED_CUE_PATTERNS)
 
 
 def _has_family_observer_cue(source_text: str, entity_start_offset: int) -> bool:
@@ -372,7 +406,8 @@ def _last_cue_index(text: str, cues: tuple[str, ...]) -> int:
 
 
 def _candidates_for(concept: Concept, entity_text: str) -> list[str]:
-    if ConceptType(concept.concept_type) not in {ConceptType.DISEASE, ConceptType.MEDICATION}:
+    concept_type = ConceptType(concept.concept_type)
+    if concept_type not in {ConceptType.DISEASE, ConceptType.MEDICATION}:
         return []
     override = BTC_CANDIDATE_OVERRIDES.get(_candidate_key(entity_text))
     if override is not None:
@@ -382,7 +417,16 @@ def _candidates_for(concept: Concept, entity_text: str) -> list[str]:
     code_override = BTC_CODE_CANDIDATE_OVERRIDES.get(concept.normalized.code)
     if code_override is not None:
         return code_override
+    if concept_type == ConceptType.DISEASE:
+        return [_vietnamese_icd10_code(concept.normalized.code)]
     return [concept.normalized.code]
+
+
+def _vietnamese_icd10_code(code: str) -> str:
+    match = ICD10_CM_DETAIL_PATTERN.match(code)
+    if match is None:
+        return code
+    return match.group(1)
 
 
 def _candidate_key(text: str) -> str:

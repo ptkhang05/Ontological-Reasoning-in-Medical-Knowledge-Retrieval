@@ -6,6 +6,10 @@ import uuid
 from clinical_nlp.context import sentence_bounds
 from clinical_nlp.schemas import Concept, ConceptType, Relation, RelationType
 
+LAB_VALUE_UNIT = r"mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|cm|mm|%"
+LAB_NUMERIC_VALUE = (
+    rf"(?:[<>]=?|≥|≤)?\s*\d+(?:[.,]\d+)*(?:\s*(?:{LAB_VALUE_UNIT}))?"
+)
 DOSAGE_PATTERN = re.compile(
     r"\s*(\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|mL|viên|ống)(?:\s*x\s*\d+)?)\b",
     re.I,
@@ -16,7 +20,8 @@ LAB_VALUE_PATTERN = re.compile(
     r"(?:is|=|:|là|tăng\s+là|tăng\s+nhẹ\s+lên|tăng\s+lên|tăng|"
     r"giảm\s+còn|giảm|cao\s+là|trả\s+về\s+là)?\s*"
     r"("
-    r"\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?"
+    + LAB_NUMERIC_VALUE +
+    r""
     r"|không\s+có\s+gì\s+đáng\s+chú\s+ý"
     r"|không\s+có\s+bất\s+thường(?:\s+[^.;,\n()]+)?"
     r"|không\s+ghi\s+nhận\s+gì\s+bất\s+thường"
@@ -35,12 +40,13 @@ LAB_VALUE_PATTERN = re.compile(
     r"|giảm"
     r"|cao"
     r"|thấp"
-    r")\b",
+    r")(?=$|[\s.;,\n)])",
     re.I,
 )
 LAB_VALUE_SEARCH_PATTERN = re.compile(
     r"("
-    r"\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?"
+    + LAB_NUMERIC_VALUE +
+    r""
     r"|không\s+có\s+gì\s+đáng\s+chú\s+ý"
     r"|không\s+có\s+bất\s+thường(?:\s+[^.;,\n()]+)?"
     r"|không\s+ghi\s+nhận\s+gì\s+bất\s+thường"
@@ -59,12 +65,15 @@ LAB_VALUE_SEARCH_PATTERN = re.compile(
     r"|giảm"
     r"|cao"
     r"|thấp"
-    r")\b",
+    r")(?=$|[\s.;,\n)])",
     re.I,
 )
-LAB_VALUE_UNIT_PATTERN = re.compile(r"\b(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%)\b", re.I)
+LAB_VALUE_UNIT_PATTERN = re.compile(
+    rf"(?:\b(?:{LAB_VALUE_UNIT.replace('|%', '')})\b|%)",
+    re.I,
+)
 LAB_NUMERIC_PATTERN = re.compile(
-    r"^\d+(?:[.,]\d+)*(?:\s*(?:mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|%))?$",
+    rf"^{LAB_NUMERIC_VALUE}$",
     re.I,
 )
 LAB_NUMERIC_CUE_PATTERN = re.compile(
@@ -79,6 +88,10 @@ NON_LAB_NUMERIC_CONTEXT_PATTERN = re.compile(
 )
 NON_LAB_NUMERIC_CONTEXT_ANYWHERE_PATTERN = re.compile(
     r"\b(?:xương\s+sườn|hình\s+ảnh\s+gãy|cột\s+sống)\b",
+    re.I,
+)
+NON_LAB_COUNT_AFTER_PATTERN = re.compile(
+    r"^\s*(?:viên|lần|stent|ống|mẫu|thủ\s+thuật|tuần|ngày|tháng|năm|giờ|phút)\b",
     re.I,
 )
 
@@ -204,6 +217,8 @@ def _is_non_lab_numeric_context(
     if previous_character.isalpha() or previous_character in "-/":
         return True
     if next_character in "-/":
+        return True
+    if NON_LAB_COUNT_AFTER_PATTERN.search(after_value):
         return True
     if NON_LAB_NUMERIC_CONTEXT_ANYWHERE_PATTERN.search(before_context):
         return True

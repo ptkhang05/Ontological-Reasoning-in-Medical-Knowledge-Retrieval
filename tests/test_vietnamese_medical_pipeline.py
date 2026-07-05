@@ -131,7 +131,7 @@ def test_common_vietnamese_diagnoses_get_icd_candidates(client: TestClient) -> N
         entity for entity in entities if entity["text"].lower() == "tăng calci máu"
     )
     assert hypercalcemia["type"] == "CHẨN_ĐOÁN"
-    assert hypercalcemia["candidates"] == ["E83.5", "E83.52"]
+    assert hypercalcemia["candidates"] == ["E83.5"]
 
     rectal_cancer = next(
         entity for entity in entities if entity["text"].lower() == "u ác trực tràng"
@@ -155,7 +155,7 @@ def test_public_cardioliver_diagnoses_get_icd_candidates(client: TestClient) -> 
         entity for entity in entities if entity["text"].lower() == "hội chứng não gan"
     )
     assert hepatic_encephalopathy["type"] == "CHẨN_ĐOÁN"
-    assert hepatic_encephalopathy["candidates"] == ["K76.82"]
+    assert hepatic_encephalopathy["candidates"] == ["K76.8"]
 
     old_mi = next(
         entity
@@ -192,13 +192,13 @@ def test_common_public_chronic_diagnoses_get_icd_candidates(client: TestClient) 
 
     expected = {
         "đái tháo đường": ["E11.9"],
-        "rung nhĩ": ["I48.9", "I48.91"],
+        "rung nhĩ": ["I48.9"],
         "bệnh thận mạn tính": ["N18.9"],
         "suy tim": ["I50.9"],
-        "bệnh động mạch vành": ["I25.1", "I25.10"],
+        "bệnh động mạch vành": ["I25.1"],
         "bệnh phổi tắc nghẽn mạn tính": ["J44.9"],
         "viêm phổi": ["J18.9"],
-        "thuyên tắc phổi": ["I26.9", "I26.99"],
+        "thuyên tắc phổi": ["I26.9"],
         "tăng kali máu": ["E87.5"],
         "béo phì": ["E66.9"],
     }
@@ -212,7 +212,7 @@ def test_common_public_chronic_diagnoses_get_icd_candidates(client: TestClient) 
         assert entity["candidates"] == candidates
 
 
-def test_btc_candidates_include_icd10_parent_for_common_cm_specific_codes(
+def test_btc_candidates_use_admin_vietnamese_icd10_for_common_cm_specific_codes(
     client: TestClient,
 ) -> None:
     text = (
@@ -231,20 +231,42 @@ def test_btc_candidates_include_icd10_parent_for_common_cm_specific_codes(
         if entity["type"] == "CHẨN_ĐOÁN"
     }
 
-    assert diagnosis_by_text["rung nhĩ"]["candidates"] == ["I48.9", "I48.91"]
-    assert diagnosis_by_text["bệnh động mạch vành"]["candidates"] == ["I25.1", "I25.10"]
-    assert diagnosis_by_text["ung thư vú"]["candidates"] == ["C50.9", "C50.919"]
-    assert diagnosis_by_text["trầm cảm"]["candidates"] == ["F32.9", "F32.A"]
-    assert diagnosis_by_text["thuyên tắc phổi"]["candidates"] == ["I26.9", "I26.99"]
-    assert diagnosis_by_text["hen suyễn"]["candidates"] == ["J45.9", "J45.909"]
-    assert diagnosis_by_text["viêm mô tế bào"]["candidates"] == ["L03.9", "L03.90"]
+    assert diagnosis_by_text["rung nhĩ"]["candidates"] == ["I48.9"]
+    assert diagnosis_by_text["bệnh động mạch vành"]["candidates"] == ["I25.1"]
+    assert diagnosis_by_text["ung thư vú"]["candidates"] == ["C50.9"]
+    assert diagnosis_by_text["trầm cảm"]["candidates"] == ["F32.9"]
+    assert diagnosis_by_text["thuyên tắc phổi"]["candidates"] == ["I26.9"]
+    assert diagnosis_by_text["hen suyễn"]["candidates"] == ["J45.9"]
+    assert diagnosis_by_text["viêm mô tế bào"]["candidates"] == ["L03.9"]
     assert diagnosis_by_text["bệnh bạch cầu dòng tủy mãn tính"]["candidates"] == [
-        "C92.1",
-        "C92.10",
+        "C92.1"
     ]
-    assert diagnosis_by_text["loét thực quản"]["candidates"] == ["K22.1", "K22.10"]
-    assert diagnosis_by_text["nhịp nhanh trên thất"]["candidates"] == ["I47.1", "I47.10"]
-    assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4", "S22.42XA"]
+    assert diagnosis_by_text["loét thực quản"]["candidates"] == ["K22.1"]
+    assert diagnosis_by_text["nhịp nhanh trên thất"]["candidates"] == ["I47.1"]
+    assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4"]
+
+
+def test_btc_icd_candidates_follow_admin_vietnamese_icd10_judgement(
+    client: TestClient,
+) -> None:
+    text = (
+        "Chẩn đoán thuyên tắc phổi, ung thư phổi không tế bào nhỏ, "
+        "di căn não vùng trán phải và gãy xương sườn trái."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["thuyên tắc phổi"]["candidates"] == ["I26.9"]
+    assert diagnosis_by_text["ung thư phổi không tế bào nhỏ"]["candidates"] == ["C34.9"]
+    assert diagnosis_by_text["di căn não vùng trán phải"]["candidates"] == ["C79.3"]
+    assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4"]
 
 
 def test_common_public_acute_diagnoses_get_icd_candidates(client: TestClient) -> None:
@@ -262,11 +284,11 @@ def test_common_public_acute_diagnoses_get_icd_candidates(client: TestClient) ->
     expected = {
         "suy thận cấp": ["N17.9"],
         "nhiễm trùng huyết": ["A41.9"],
-        "viêm mô tế bào": ["L03.9", "L03.90"],
+        "viêm mô tế bào": ["L03.9"],
         "ung thư đại tràng": ["C18.9"],
-        "suy hô hấp": ["J96.9", "J96.90"],
+        "suy hô hấp": ["J96.9"],
         "hạ kali máu": ["E87.6"],
-        "ngưng thở khi ngủ": ["G47.3", "G47.30"],
+        "ngưng thở khi ngủ": ["G47.3"],
         "viêm tủy xương": ["M86.9"],
         "đột quỵ": ["I63.9"],
     }
@@ -294,15 +316,15 @@ def test_additional_public_diagnoses_get_icd_candidates(client: TestClient) -> N
 
     expected = {
         "viêm túi mật cấp": ["K81.0"],
-        "viêm dạ dày": ["K29.7", "K29.70"],
+        "viêm dạ dày": ["K29.7"],
         "viêm dạ dày ruột do virus": ["A08.4"],
         "u ác của tuyến tiền liệt": ["C61"],
-        "đa u tủy xương": ["C90.0", "C90.00"],
+        "đa u tủy xương": ["C90.0"],
         "thiếu máu": ["D64.9"],
-        "xẹp phổi": ["J98.1", "J98.11"],
+        "xẹp phổi": ["J98.1"],
         "tràn dịch màng phổi": ["J90"],
         "nhiễm trùng đường tiết niệu": ["N39.0"],
-        "sỏi mật": ["K80.2", "K80.20"],
+        "sỏi mật": ["K80.2"],
     }
     diagnosis_by_text = {
         entity["text"].lower(): entity
@@ -334,12 +356,11 @@ def test_high_confidence_public_diagnosis_findings_get_icd_candidates(
 
     expected = {
         "hẹp van động mạch chủ nghiêm trọng": ["I35.0"],
-        "sỏi ống dẫn mật chung đoạn cuối": ["K80.5", "K80.50"],
-        "bệnh lý chất trắng": ["R90.8", "R90.82"],
+        "sỏi ống dẫn mật chung đoạn cuối": ["K80.5"],
+        "bệnh lý chất trắng": ["R90.8"],
         "bệnh thận đa nang": ["Q61.3"],
         "nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin": [
             "A41.0",
-            "A41.01",
         ],
     }
     for text_value, candidates in expected.items():
@@ -389,25 +410,293 @@ def test_public_imaging_and_chronic_findings_get_icd_candidates(client: TestClie
 
     expected = {
         "tim to": ["I51.7"],
-        "tràn dịch màng tim": ["I31.3", "I31.39"],
+        "tràn dịch màng tim": ["I31.3"],
         "khí phế thủng": ["J43.9"],
         "thoát vị hoành": ["K44.9"],
         "hẹp van động mạch chủ": ["I35.0"],
         "hở van hai lá": ["I34.0"],
         "chèn ép tim": ["I31.4"],
         "xuất huyết dưới nhện": ["I60.9"],
-        "tụ máu dưới màng cứng": ["I62.0", "I62.00"],
+        "tụ máu dưới màng cứng": ["I62.0"],
         "loét tá tràng": ["K26.9"],
         "tắc nghẽn đường mật": ["K83.1"],
         "nốt tuyến giáp": ["E04.1"],
         "u xơ tử cung": ["D25.9"],
         "bàng quang thần kinh": ["N31.9"],
-        "liệt hai chi dưới": ["G82.2", "G82.20"],
+        "liệt hai chi dưới": ["G82.2"],
         "rối loạn lo âu": ["F41.9"],
         "cổ trướng": ["R18.8"],
     }
     for text_value, candidates in expected.items():
         assert diagnosis_by_text[text_value]["candidates"] == candidates
+
+
+def test_low_output_public_records_get_verified_terms(client: TestClient) -> None:
+    text = (
+        "Bệnh lý mãn tính: tách thành động mạch chủ biến chứng bởi liệt hai chân. "
+        "Tiền sử bàn chân vẹo bẩm sinh. "
+        "Kết quả khám: tràn dịch màng ngoài tim mức độ trung bình. "
+        "Hình ảnh ghi nhận thoát vị cạnh thực quản khá lớn. "
+        "Chụp mạch máu ghi nhận hẹp khoảng 65% của động mạch cảnh chung trái. "
+        "Đã đặt stent graft cho phình động mạch chủ ngực – bụng. "
+        "Bệnh nhân nhiều lần giảm cân rồi tăng cân trở lại."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert diagnosis_by_text["tách thành động mạch chủ"]["candidates"] == [
+        "I71.0",
+    ]
+    assert diagnosis_by_text["liệt hai chân"]["candidates"] == ["G82.2"]
+    assert diagnosis_by_text["bàn chân vẹo bẩm sinh"]["candidates"] == ["Q66.0"]
+    assert diagnosis_by_text["tràn dịch màng ngoài tim"]["candidates"] == ["I31.3"]
+    assert diagnosis_by_text["thoát vị cạnh thực quản"]["candidates"] == ["K44.9"]
+    assert diagnosis_by_text["hẹp khoảng 65% của động mạch cảnh chung trái"][
+        "candidates"
+    ] == ["I65.2"]
+    assert diagnosis_by_text["phình động mạch chủ ngực – bụng"]["candidates"] == [
+        "I71.6"
+    ]
+    assert "giảm cân" in symptom_texts
+    assert "tăng cân trở lại" in symptom_texts
+
+
+def test_low_output_neuro_and_wound_records_get_terms(client: TestClient) -> None:
+    text = (
+        "Lý do nhập viện: bệnh rễ thần kinh tuỷ sống ở ngón tay cái. "
+        "MRI cột sống cổ cho thấy hẹp lỗ liên hợp. "
+        "Triệu chứng khi đến: vết thương thấu bụng giữa bên phải."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert diagnosis_by_text["bệnh rễ thần kinh tuỷ sống ở ngón tay cái"][
+        "candidates"
+    ] == ["M54.1"]
+    assert diagnosis_by_text["hẹp lỗ liên hợp"]["candidates"] == ["M99.7"]
+    assert "vết thương thấu bụng giữa bên phải" in symptom_texts
+
+
+def test_low_output_oncology_psych_and_vascular_records_get_terms(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh lý mãn tính: Giai đoạn IV Ung thư phổi không tế bào nhỏ; "
+        "Di căn não vùng trán phải; Sa van hai lá; tâm thần phân liệt. "
+        "Triệu chứng hiện tại: đau bẹn trái. "
+        "Không có cảm giác tê, cảm giác châm chích hoặc cảm giác nặng ở chân trái. "
+        "Dấu hiệu lâm sàng: Bầm máu vùng bẹn trái. "
+        "Bệnh mạn tính: bệnh mạch máu ngoại biên và "
+        "Ung thư biểu mô tế bào vảy xâm nhập của dương vật."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    symptoms_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert diagnosis_by_text["ung thư phổi không tế bào nhỏ"]["candidates"] == [
+        "C34.9",
+    ]
+    assert diagnosis_by_text["di căn não vùng trán phải"]["candidates"] == ["C79.3"]
+    assert diagnosis_by_text["sa van hai lá"]["candidates"] == ["I34.1"]
+    assert diagnosis_by_text["tâm thần phân liệt"]["candidates"] == ["F20.9"]
+    assert diagnosis_by_text["bệnh mạch máu ngoại biên"]["candidates"] == ["I73.9"]
+    assert diagnosis_by_text[
+        "ung thư biểu mô tế bào vảy xâm nhập của dương vật"
+    ]["candidates"] == ["C60.9"]
+    assert "đau bẹn trái" in symptoms_by_text
+    assert symptoms_by_text["cảm giác tê"]["assertions"] == ["isNegated"]
+    assert symptoms_by_text["cảm giác châm chích"]["assertions"] == ["isNegated"]
+    assert symptoms_by_text["cảm giác nặng ở chân trái"]["assertions"] == [
+        "isNegated"
+    ]
+    assert "bầm máu vùng bẹn trái" in symptoms_by_text
+
+
+def test_public_ocr_spacing_and_long_symptom_spans(client: TestClient) -> None:
+    text = (
+        "Bệnh mạn tính: Ung thư biểu mô tế bào vảy xâm nhập của "
+        "dương vậtbiệt hóa kém. "
+        "Triệu chứng hiện tại: đau ngực trái cấp tính, "
+        "đau sau xương ức lan ra sau lưng, đau ngực lan ra sau lưng. "
+        "Lý do nhập viện: suy nhược toàn thân. Bệnh nhân khó thở liên tục và hồi hộp."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert diagnosis_by_text[
+        "ung thư biểu mô tế bào vảy xâm nhập của dương vậtbiệt hóa kém"
+    ]["candidates"] == ["C60.9"]
+    assert "đau ngực trái cấp tính" in symptom_texts
+    assert "đau sau xương ức lan ra sau lưng" in symptom_texts
+    assert "đau ngực lan ra sau lưng" in symptom_texts
+    assert "suy nhược toàn thân" in symptom_texts
+    assert "khó thở liên tục" in symptom_texts
+    assert "hồi hộp" in symptom_texts
+
+
+def test_public_single_file_terms_keep_long_spans(client: TestClient) -> None:
+    text = (
+        "Tiền sử bệnh: hội chứng turner. "
+        "Triệu chứng hiện tại: triệu chứng trào ngược, "
+        "loét mới ở ngón chân út bên phải, cảm giác có đờm ở cổ họng, "
+        "khó thở tăng dần, phù ngoại vi tăng dần và ho tăng lên."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in entities
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert diagnosis_by_text["hội chứng turner"]["candidates"] == ["Q96.9"]
+    assert "triệu chứng trào ngược" in symptom_texts
+    assert "loét mới ở ngón chân út bên phải" in symptom_texts
+    assert "cảm giác có đờm ở cổ họng" in symptom_texts
+    assert "khó thở tăng dần" in symptom_texts
+    assert "phù ngoại vi tăng dần" in symptom_texts
+    assert "ho tăng lên" in symptom_texts
+
+
+def test_public_cardiac_long_diagnosis_spans_use_correct_icd(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh lý mạn tính: bệnh tim mạch do xơ vữa động mạch. "
+        "Chẩn đoán thiếu máu cơ tim vùng dưới và thành bên. "
+        "Điện tâm đồ cho thấy rung nhĩ kèm đáp ứng thất nhanh mới "
+        "và nhịp tim chậm tương đối. Sau đó có nhịp tim chậm nặng. "
+        "Ghi nhận rung nhĩ kèm nhịp nhanh trên thất. "
+        "Phát hiện rung nhĩ điển hình kèm theo đáp ứng thất nhanh."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["bệnh tim mạch do xơ vữa động mạch"][
+        "candidates"
+    ] == ["I25.1"]
+    assert diagnosis_by_text["thiếu máu cơ tim"]["candidates"] == ["I25.9"]
+    assert diagnosis_by_text["rung nhĩ kèm đáp ứng thất nhanh"]["candidates"] == [
+        "I48.9"
+    ]
+    assert diagnosis_by_text["nhịp nhanh trên thất"]["candidates"] == ["I47.1"]
+    assert diagnosis_by_text[
+        "rung nhĩ điển hình kèm theo đáp ứng thất nhanh"
+    ]["candidates"] == ["I48.9"]
+    assert diagnosis_by_text["nhịp tim chậm tương đối"]["candidates"] == ["R00.1"]
+    assert diagnosis_by_text["nhịp tim chậm nặng"]["candidates"] == ["R00.1"]
+    assert "xơ vữa động mạch" not in diagnosis_by_text
+    assert "thiếu máu" not in diagnosis_by_text
+
+
+def test_public_lung_metastasis_gets_exact_diagnosis_candidate(
+    client: TestClient,
+) -> None:
+    text = "Kết quả chẩn đoán hình ảnh: ung thư di căn theo đường bạch huyết ở hai phổi."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["ung thư di căn theo đường bạch huyết ở hai phổi"][
+        "candidates"
+    ] == ["C78.0"]
+
+
+def test_lab_values_keep_comparators_and_units_from_source_text(
+    client: TestClient,
+) -> None:
+    text = (
+        "Siêu âm Doppler ghi nhận tỷ số PSV/EDV > 7. "
+        "Chụp cắt lớp vi tính (ct) cho thấy tắc hẹp 80% động mạch thận trái. "
+        "Siêu âm cho thấy ống mật chủ 15 mm. "
+        "ERCP cho thấy khối phình to 2 cm. "
+        "Nội soi cho thấy nhiều loét tá tràng và hồi tràng 2 tuần sau điều trị."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = {
+        entity["text"]
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {"> 7", "80%", "15 mm", "2 cm"}.issubset(lab_values)
+    assert lab_values.isdisjoint({"7", "80", "15", "2"})
 
 
 def test_history_section_marks_conditions_historical(client: TestClient) -> None:
@@ -625,6 +914,215 @@ def test_public_medication_aliases_get_rxnorm_candidates(client: TestClient) -> 
     assert medication_by_text["iron"]["candidates"] == ["90176"]
     assert medication_by_text["toradol"]["candidates"] == ["35827"]
     assert medication_by_text["vicodin"]["candidates"] == ["214182"]
+
+
+def test_missed_public_medication_section_terms_get_2026_rxnorm_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Thuốc trước khi nhập viện\n"
+        "- azathioprine\n"
+        "- Rosuvastatin (Crestor): đã hết thuốc\n"
+        "- Carvedilol: đã hết thuốc\n"
+        "- amiodarone\n"
+        "- mucinex d\n"
+        "- z-pack\n"
+        "- clopidogrel (prasugrel chuyển sang clopidogrel)\n"
+        "Điều trị: Kháng sinh Cefepim và truyền dịch yếu tố IX đậm đặc."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    expected = {
+        "azathioprine": ["1256"],
+        "rosuvastatin": ["301542"],
+        "crestor": ["320864"],
+        "carvedilol": ["20352"],
+        "amiodarone": ["703"],
+        "mucinex d": ["214599"],
+        "z-pack": ["750149"],
+        "prasugrel": ["613391"],
+        "cefepim": ["20481"],
+        "yếu tố ix đậm đặc": ["221099"],
+    }
+    for text_value, candidates in expected.items():
+        assert medication_by_text[text_value]["candidates"] == candidates
+
+
+def test_discontinued_medication_mentions_are_marked_historical(
+    client: TestClient,
+) -> None:
+    text = (
+        "Bệnh sử hiện tại: Các loại thuốc (isosorbide, crestor, carvedilol) "
+        "đã hết khi đi khám PCP. Hết isosorbide, crestor, carvedilol khoảng "
+        "3 tuần trước."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_entities = [
+        entity for entity in response.json() if entity["type"] == "THUỐC"
+    ]
+    assert medication_entities
+    assert all(entity["assertions"] == ["isHistorical"] for entity in medication_entities)
+
+
+def test_bicarbonate_replacement_is_medication_only_in_treatment_context(
+    client: TestClient,
+) -> None:
+    text = (
+        "Thuốc trước khi nhập viện: thay thế bicarbonate. "
+        "Kết quả xét nghiệm: hco3- (bicarbonate) 20."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    bicarbonate_medications = [
+        entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC" and entity["text"].lower() == "bicarbonate"
+    ]
+
+    assert bicarbonate_medications == [
+        {
+            "text": "bicarbonate",
+            "position": [
+                text.index("bicarbonate"),
+                text.index("bicarbonate") + len("bicarbonate"),
+            ],
+            "type": "THUỐC",
+            "assertions": ["isHistorical"],
+            "candidates": ["36676"],
+        }
+    ]
+
+
+def test_normal_saline_abbreviation_is_medication_only_after_infusion_cue(
+    client: TestClient,
+) -> None:
+    text = "Điều trị: Truyền dịch : 4000 ml NS 0.9 %. Theo dõi chỉ số NS khác."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    saline_medications = [
+        entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC" and "ns 0.9" in entity["text"].lower()
+    ]
+
+    assert saline_medications == [
+        {
+            "text": "4000 ml NS 0.9 %",
+            "position": [
+                text.index("4000 ml NS 0.9 %"),
+                text.index("4000 ml NS 0.9 %") + len("4000 ml NS 0.9 %"),
+            ],
+            "type": "THUỐC",
+            "assertions": [],
+            "candidates": ["313002"],
+        }
+    ]
+
+
+def test_more_public_medication_mentions_get_verified_rxnorm_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Bệnh nhân được cho về với đơn thuốci levafloxacin và cephalexin. "
+        "Ceftriaxone 1 gram dùng 1 liều. "
+        "Đang dùng thuốc weekly taxol. "
+        "Nhận 40meq po k. Nhận 40meq iv k. "
+        "Kết quả xét nghiệm kali (K) 6.3."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    expected = {
+        "levafloxacin": ["82122"],
+        "cephalexin": ["2231"],
+        "ceftriaxone 1 gram": ["1665021"],
+        "taxol": ["196466"],
+        "40meq po k": ["2728723"],
+        "40meq iv k": ["2728723"],
+    }
+    for text_value, candidates in expected.items():
+        assert medication_by_text[text_value]["candidates"] == candidates
+
+    assert "k" not in medication_by_text
+
+
+def test_public_oncology_medications_and_stuck_aleve_get_rxnorm_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh mãn tính: Ung thư vú di căn ER+/HER2− đang dùng thuốc "
+        "weekly taxol và fulvestrant để điều trị. "
+        "Điều trị tại bệnh viện: compazine và alevenhưng vẫn còn đau."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    expected = {
+        "taxol": ["196466"],
+        "fulvestrant": ["282357"],
+        "compazine": ["203546"],
+        "aleve": ["215101"],
+    }
+    for text_value, candidates in expected.items():
+        assert medication_by_text[text_value]["candidates"] == candidates
+
+    assert "alevenhưng" not in medication_by_text
+
+
+def test_public_treatment_medications_dextrose_combivent_and_iv_magnesium(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các thủ thuật đã thực hiện: Được dùng insulin và dextrose cho tăng kali máu. "
+        "Điều trị: combivent nebs x3 every 20 minutes và iv magnesium."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    expected = {
+        "insulin": ["253182"],
+        "dextrose": ["4850"],
+        "combivent nebs": ["151539"],
+        "iv magnesium": ["6574"],
+    }
+    for text_value, candidates in expected.items():
+        assert medication_by_text[text_value]["candidates"] == candidates
 
 
 def test_common_public_labs_extract_names_and_values(client: TestClient) -> None:
@@ -927,7 +1425,7 @@ def test_lab_names_do_not_split_leukemia_diagnoses(client: TestClient) -> None:
         if entity["text"].lower() == "bệnh bạch cầu dòng tủy mãn tính"
     )
     assert leukemia["type"] == "CHẨN_ĐOÁN"
-    assert leukemia["candidates"] == ["C92.1", "C92.10"]
+    assert leukemia["candidates"] == ["C92.1"]
 
 
 def test_long_diagnosis_spans_are_trimmed_before_secondary_cues(
@@ -947,7 +1445,7 @@ def test_long_diagnosis_spans_are_trimmed_before_secondary_cues(
         if entity["type"] == "CHẨN_ĐOÁN"
     }
     diagnosis = diagnosis_by_text["nhiễm khuẩn huyết do tụ cầu vàng nhạy cảm methicillin"]
-    assert diagnosis["candidates"] == ["A41.0", "A41.01"]
+    assert diagnosis["candidates"] == ["A41.0"]
     assert not any("nghi liên quan" in text for text in diagnosis_by_text)
 
 
@@ -989,7 +1487,8 @@ def test_imaging_and_procedure_numbers_are_not_lab_values(client: TestClient) ->
         "Chụp cộng hưởng từ (mri) cột sống cổ cho thấy hẹp ống sống C4-5. "
         "Nội soi cho thấy loét thực quản độ 2/6. "
         "Chụp cắt lớp vi tính (ct) lồng ngực Hình ảnh gãy 3 xương sườn "
-        "9, 10 và 11."
+        "9, 10 và 11. "
+        "Nội soi mật tụy ngược dòng (ERCP) lấy thành công 02 viên sỏi."
     )
 
     response = client.post("/v1/analyze/btc", json={"text": text})
@@ -1000,7 +1499,7 @@ def test_imaging_and_procedure_numbers_are_not_lab_values(client: TestClient) ->
         for entity in response.json()
         if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
     }
-    assert lab_values.isdisjoint({"2", "3", "4", "5", "6", "9", "10", "11"})
+    assert lab_values.isdisjoint({"02", "2", "3", "4", "5", "6", "9", "10", "11"})
 
 
 def test_long_eye_finding_span_is_preferred(client: TestClient) -> None:
@@ -1093,4 +1592,175 @@ def test_low_coded_public_diagnoses_get_verified_candidates(
     assert diagnosis_by_text["não úng thuỷ khác"]["candidates"] == ["G91.8"]
     assert diagnosis_by_text["nang tụy"]["candidates"] == ["K86.2"]
     assert diagnosis_by_text["tắc nghẽn đường mật"]["candidates"] == ["K83.1"]
-    assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4", "S22.42XA"]
+    assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4"]
+
+
+def test_public_kidney_graves_gout_and_colon_cancer_terms_get_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh lý mạn tính: bệnh gút không đặc hiệu, bệnh Graves. "
+        "Tiền sử ung thư biểu mô tuyến đại tràng. "
+        "Bệnh mạn tính: Suy thận mạn giai đoạn V do đái tháo đường."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["bệnh gút"]["candidates"] == ["M10.9"]
+    assert diagnosis_by_text["bệnh graves"]["candidates"] == ["E05.0"]
+    assert diagnosis_by_text["ung thư biểu mô tuyến đại tràng"]["candidates"] == [
+        "C18.9"
+    ]
+    assert diagnosis_by_text["suy thận mạn giai đoạn v"]["candidates"] == ["N18.5"]
+    assert "suy thận" not in diagnosis_by_text
+
+
+def test_public_procedure_medications_get_verified_rxnorm_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các thủ thuật đã thực hiện: levophed, propofol để an thần, "
+        "Đã đặt phentolamine. Ra viện với đơn Augmentin đường uống trong 10 ngày."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    expected = {
+        "levophed": ["227559"],
+        "propofol": ["8782"],
+        "phentolamine": ["8153"],
+        "augmentin đường uống": ["151392"],
+    }
+    for text_value, candidates in expected.items():
+        assert medication_by_text[text_value]["candidates"] == candidates
+
+
+def test_non_appetite_symptom_does_not_negate_later_symptoms(
+    client: TestClient,
+) -> None:
+    text = (
+        "Bệnh nhân kể cảm thấy khó chịu mệt mỏi nhiều, ăn không ngon miệng, "
+        "ngứa da toàn thân nhiều, và mất trí nhớ chi tiết."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptoms_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    assert symptoms_by_text["ăn không ngon miệng"]["assertions"] == []
+    assert symptoms_by_text["ngứa da toàn thân nhiều"]["assertions"] == []
+    assert symptoms_by_text["mất trí nhớ chi tiết"]["assertions"] == []
+    assert "ngứa da" not in symptoms_by_text
+    assert "mất trí nhớ" not in symptoms_by_text
+
+
+def test_public_missing_diagnosis_mentions_get_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Tiền sử bệnh: phình động mạch chủ nhỏ, u cơ trơn tử cung không đặc hiệu. "
+        "Bệnh lý mãn tính: bệnh lý thần kinh ngoại biên. "
+        "Bệnh sử tâm thần: Rối loạn lưỡng cực."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["phình động mạch chủ nhỏ"]["candidates"] == ["I71.9"]
+    assert diagnosis_by_text["u cơ trơn tử cung"]["candidates"] == ["D25.9"]
+    assert diagnosis_by_text["bệnh lý thần kinh ngoại biên"]["candidates"] == [
+        "G62.9"
+    ]
+    assert diagnosis_by_text["rối loạn lưỡng cực"]["candidates"] == ["F31.9"]
+
+
+def test_public_neuro_knee_and_blood_color_spans_are_not_fragmented(
+    client: TestClient,
+) -> None:
+    text = (
+        "Lý do nhập viện: Yếu nửa người trái. "
+        "Diễn biến: yếu nửa người trái, yếu sức, khó khăn khi ra khỏi ghế tựa, "
+        "cánh tay trái được cho là lơ lửng, khó khăn khi ước lượng vị trí ngồi "
+        "xuống ghế ăn trưa, cảm giác bất thường ở bên phải đầu. "
+        "Tiền sử: đau vùng xương bánh chè – đùi phải dữ dội. "
+        "Hiện tại: Đau bánh chè đùi phải dữ dội. "
+        "Lý do khác: đại tiện ra máu đỏ tươi gián đoạn. Màu sắc: đỏ tươi."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptom_texts = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+
+    expected = {
+        "yếu nửa người trái",
+        "yếu sức",
+        "khó khăn khi ra khỏi ghế tựa",
+        "cánh tay trái được cho là lơ lửng",
+        "khó khăn khi ước lượng vị trí ngồi xuống ghế ăn trưa",
+        "cảm giác bất thường ở bên phải đầu",
+        "đau vùng xương bánh chè – đùi phải dữ dội",
+        "đau bánh chè đùi phải dữ dội",
+        "đại tiện ra máu đỏ tươi",
+    }
+    assert expected.issubset(symptom_texts)
+    assert "yếu" not in symptom_texts
+    assert "đỏ" not in symptom_texts
+
+
+def test_public_long_diagnosis_variants_keep_full_text_with_same_codes(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh lý mạn tính: bệnh phổi tắc nghẽn mạn tính, không xác định. "
+        "Bệnh mạn tính: Nhiễm trùng đường tiết niệu kháng thuốc. "
+        "Bệnh lý mãn tính: rối loạn lo âu, không biệt định nghiêm trọng. "
+        "Bằng chứng Bệnh gan do rượu ở vị trí 35cm."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    expected = {
+        "bệnh phổi tắc nghẽn mạn tính, không xác định": ["J44.9"],
+        "nhiễm trùng đường tiết niệu kháng thuốc": ["N39.0"],
+        "rối loạn lo âu, không biệt định nghiêm trọng": ["F41.9"],
+        "bệnh gan do rượu": ["K70.9"],
+    }
+    for text_value, candidates in expected.items():
+        assert diagnosis_by_text[text_value]["candidates"] == candidates

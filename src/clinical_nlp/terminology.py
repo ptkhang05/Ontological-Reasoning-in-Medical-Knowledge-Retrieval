@@ -193,7 +193,11 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I48.91",
             "Unspecified atrial fibrillation",
-            ("rung nhĩ",),
+            (
+                "rung nhĩ",
+                "rung nhĩ kèm đáp ứng thất nhanh",
+                "rung nhĩ điển hình kèm theo đáp ứng thất nhanh",
+            ),
         ),
         _icd10_entry(
             "I48.0",
@@ -204,6 +208,16 @@ def demo_entries() -> list[TerminologyEntry]:
             "N18.9",
             "Chronic kidney disease, unspecified",
             ("bệnh thận mạn", "bệnh thận mạn tính"),
+        ),
+        _icd10_entry(
+            "N18.5",
+            "Chronic kidney disease, stage 5",
+            (
+                "suy thận mạn giai đoạn v",
+                "suy thận mạn giai v",
+                "bệnh thận mạn giai đoạn v",
+                "bệnh thận mạn giai đoạn 5",
+            ),
         ),
         _icd10_entry(
             "N17.9",
@@ -223,7 +237,16 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I25.10",
             "Atherosclerotic heart disease of native coronary artery without angina pectoris",
-            ("bệnh động mạch vành", "bệnh mạch vành"),
+            (
+                "bệnh động mạch vành",
+                "bệnh mạch vành",
+                "bệnh tim mạch do xơ vữa động mạch",
+            ),
+        ),
+        _icd10_entry(
+            "I25.9",
+            "Chronic ischemic heart disease, unspecified",
+            ("thiếu máu cơ tim", "bệnh thiếu máu cơ tim"),
         ),
         _icd10_entry(
             "E78.5",
@@ -238,12 +261,31 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "J44.9",
             "Chronic obstructive pulmonary disease, unspecified",
-            ("bệnh phổi tắc nghẽn mạn tính", "copd"),
+            (
+                "bệnh phổi tắc nghẽn mạn tính, không xác định",
+                "bệnh phổi tắc nghẽn mạn tính",
+                "copd",
+            ),
         ),
         _icd10_entry(
             "J45.909",
             "Unspecified asthma, uncomplicated",
             ("hen suyễn", "hen phế quản"),
+        ),
+        _icd10_entry(
+            "E05.0",
+            "Thyrotoxicosis with diffuse goiter",
+            ("bệnh graves", "graves"),
+        ),
+        _icd10_entry(
+            "M10.9",
+            "Gout, unspecified",
+            ("bệnh gút", "gút"),
+        ),
+        _icd10_entry(
+            "N81.4",
+            "Uterovaginal prolapse, unspecified",
+            ("sa âm đạo", "khối sa âm đạo"),
         ),
         _icd10_entry(
             "J18.9",
@@ -272,7 +314,11 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "C18.9",
             "Malignant neoplasm of colon, unspecified",
-            ("ung thư đại tràng", "ung thư biểu mô đại tràng"),
+            (
+                "ung thư đại tràng",
+                "ung thư biểu mô đại tràng",
+                "ung thư biểu mô tuyến đại tràng",
+            ),
         ),
         _icd10_entry(
             "I26.99",
@@ -359,6 +405,40 @@ def demo_entries() -> list[TerminologyEntry]:
             ),
         ),
         _icd10_entry(
+            "C34.90",
+            "Malignant neoplasm of unspecified part of unspecified bronchus or lung",
+            (
+                "ung thư phổi",
+                "ung thư phổi không tế bào nhỏ",
+            ),
+        ),
+        _icd10_entry(
+            "C79.31",
+            "Secondary malignant neoplasm of brain",
+            (
+                "di căn não",
+                "di căn não vùng trán phải",
+            ),
+        ),
+        _icd10_entry(
+            "C78.0",
+            "Secondary malignant neoplasm of lung",
+            ("ung thư di căn theo đường bạch huyết ở hai phổi",),
+        ),
+        _icd10_entry(
+            "C60.9",
+            "Malignant neoplasm of penis, unspecified",
+            (
+                "ung thư biểu mô tế bào vảy xâm nhập của dương vật",
+                "ung thư biểu mô tế bào vảy xâm nhập của dương vậtbiệt hóa kém",
+            ),
+        ),
+        _icd10_entry(
+            "Q96.9",
+            "Turner's syndrome, unspecified",
+            ("hội chứng turner",),
+        ),
+        _icd10_entry(
             "C90.00",
             "Multiple myeloma not having achieved remission",
             ("đa u tủy xương", "đa u tuỷ xương", "bệnh đa u tuỷ xương"),
@@ -382,6 +462,7 @@ def demo_entries() -> list[TerminologyEntry]:
             "N39.0",
             "Urinary tract infection, site not specified",
             (
+                "nhiễm trùng đường tiết niệu kháng thuốc",
                 "nhiễm trùng đường tiết niệu",
                 "nhiễm khuẩn đường tiết niệu",
                 "nhiễm khuẩn đường tiết niệu, vị trí không xác định",
@@ -414,14 +495,45 @@ def demo_entries() -> list[TerminologyEntry]:
             ("hẹp ống sống",),
         ),
         _icd10_entry(
+            "M54.1",
+            "Radiculopathy",
+            (
+                "bệnh rễ thần kinh tuỷ sống",
+                "bệnh rễ thần kinh tuỷ sống ở ngón tay cái",
+            ),
+        ),
+        _icd10_entry(
+            "M99.7",
+            "Connective tissue and disc stenosis of intervertebral foramina",
+            ("hẹp lỗ liên hợp",),
+        ),
+        _icd10_entry(
+            "G62.9",
+            "Polyneuropathy, unspecified",
+            (
+                "bệnh lý thần kinh ngoại biên",
+                "viêm thần kinh ngoại biên",
+            ),
+        ),
+        _icd10_entry(
             "F32.A",
             "Depression, unspecified",
             ("trầm cảm", "rối loạn cảm xúc trầm cảm"),
         ),
         _icd10_entry(
+            "F20.9",
+            "Schizophrenia, unspecified",
+            ("tâm thần phân liệt",),
+        ),
+        _icd10_entry(
             "F30.9",
             "Manic episode, unspecified",
             ("hưng cảm",),
+        ),
+        _icd10_entry(
+            "F31.9",
+            "Bipolar disorder, unspecified",
+            ("rối loạn lưỡng cực",),
         ),
         _icd10_entry(
             "R45.851",
@@ -446,7 +558,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I31.39",
             "Other pericardial effusion (noninflammatory)",
-            ("tràn dịch màng tim",),
+            ("tràn dịch màng tim", "tràn dịch màng ngoài tim"),
         ),
         _icd10_entry(
             "J43.9",
@@ -456,7 +568,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "K44.9",
             "Diaphragmatic hernia without obstruction or gangrene",
-            ("thoát vị hoành",),
+            ("thoát vị hoành", "thoát vị cạnh thực quản"),
         ),
         _icd10_entry(
             "K21.9",
@@ -476,6 +588,11 @@ def demo_entries() -> list[TerminologyEntry]:
             "I34.0",
             "Nonrheumatic mitral (valve) insufficiency",
             ("hở van hai lá",),
+        ),
+        _icd10_entry(
+            "I34.1",
+            "Nonrheumatic mitral (valve) prolapse",
+            ("sa van hai lá",),
         ),
         _icd10_entry(
             "I36.1",
@@ -537,7 +654,12 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "R00.1",
             "Bradycardia, unspecified",
-            ("nhịp tim chậm", "nhịp chậm xoang"),
+            (
+                "nhịp tim chậm",
+                "nhịp tim chậm tương đối",
+                "nhịp tim chậm nặng",
+                "nhịp chậm xoang",
+            ),
         ),
         _icd10_entry(
             "K26.9",
@@ -589,7 +711,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "D25.9",
             "Leiomyoma of uterus, unspecified",
-            ("u xơ tử cung",),
+            ("u xơ tử cung", "u cơ trơn tử cung"),
         ),
         _icd10_entry(
             "N31.9",
@@ -599,12 +721,12 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "G82.20",
             "Paraplegia, unspecified",
-            ("liệt hai chi dưới",),
+            ("liệt hai chi dưới", "liệt hai chân"),
         ),
         _icd10_entry(
             "F41.9",
             "Anxiety disorder, unspecified",
-            ("rối loạn lo âu",),
+            ("rối loạn lo âu, không biệt định nghiêm trọng", "rối loạn lo âu"),
         ),
         _icd10_entry(
             "F10.20",
@@ -622,6 +744,11 @@ def demo_entries() -> list[TerminologyEntry]:
             ("tăng áp lực tĩnh mạch cửa", "áp lực tĩnh mạch cửa"),
         ),
         _icd10_entry(
+            "K70.9",
+            "Alcoholic liver disease, unspecified",
+            ("bệnh gan do rượu",),
+        ),
+        _icd10_entry(
             "R18.8",
             "Other ascites",
             ("cổ trướng",),
@@ -634,7 +761,12 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "I65.29",
             "Occlusion and stenosis of unspecified carotid artery",
-            ("hẹp động mạch cảnh", "nghẽn tắc và hẹp động mạch cảnh"),
+            (
+                "hẹp động mạch cảnh",
+                "nghẽn tắc và hẹp động mạch cảnh",
+                "hẹp động mạch cảnh chung trái",
+                "hẹp khoảng 65% của động mạch cảnh chung trái",
+            ),
         ),
         TerminologyEntry(
             concept_type=ConceptType.DISEASE,
@@ -827,9 +959,28 @@ def demo_entries() -> list[TerminologyEntry]:
             "I71.012",
             "Dissection of descending thoracic aorta",
             (
+                "tách thành động mạch chủ",
                 "bóc tách động mạch chủ loại b",
                 "tổn thương bóc tách động mạch chủ stanford loại b",
             ),
+        ),
+        _icd10_entry(
+            "I71.6",
+            "Thoracoabdominal aortic aneurysm, without rupture",
+            (
+                "phình động mạch chủ ngực – bụng",
+                "phình động mạch chủ ngực bụng",
+            ),
+        ),
+        _icd10_entry(
+            "I71.9",
+            "Aortic aneurysm of unspecified site, without rupture",
+            ("phình động mạch chủ nhỏ",),
+        ),
+        _icd10_entry(
+            "Q66.0",
+            "Congenital talipes equinovarus",
+            ("bàn chân vẹo bẩm sinh",),
         ),
         _icd10_entry(
             "I70.1",
@@ -846,6 +997,11 @@ def demo_entries() -> list[TerminologyEntry]:
                 "rò động - tĩnh mạch đùi phải",
                 "rò động - tĩnh mạch đùi phải do thủ thuật can thiệp",
             ),
+        ),
+        _icd10_entry(
+            "I73.9",
+            "Peripheral vascular disease, unspecified",
+            ("bệnh mạch máu ngoại biên",),
         ),
         _icd10_entry(
             "S22.42XA",
@@ -1498,6 +1654,222 @@ def demo_entries() -> list[TerminologyEntry]:
             preferred_term="diltiazem",
             synonyms=("diltiazem",),
             release_id="rxnav-api-2026-07-03",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="1256",
+            preferred_term="azathioprine",
+            synonyms=("azathioprine",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="301542",
+            preferred_term="rosuvastatin",
+            synonyms=("rosuvastatin",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="320864",
+            preferred_term="Crestor",
+            synonyms=("crestor",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="20352",
+            preferred_term="carvedilol",
+            synonyms=("carvedilol",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="703",
+            preferred_term="amiodarone",
+            synonyms=("amiodarone",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="214599",
+            preferred_term="guaifenesin / pseudoephedrine",
+            synonyms=("mucinex d",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="750149",
+            preferred_term="Z-PAK",
+            synonyms=("z-pack", "z-pak"),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="613391",
+            preferred_term="prasugrel",
+            synonyms=("prasugrel",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="20481",
+            preferred_term="cefepime",
+            synonyms=("cefepime", "cefepim"),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="221099",
+            preferred_term="coagulation factor IX, human",
+            synonyms=("yếu tố ix đậm đặc", "yếu tố IX đậm đặc"),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="82122",
+            preferred_term="levofloxacin",
+            synonyms=("levafloxacin",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="2231",
+            preferred_term="cephalexin",
+            synonyms=("cephalexin",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="1665021",
+            preferred_term="cefTRIAXone 1 GM Injection",
+            synonyms=("ceftriaxone 1 gram", "ceftriaxone 1 g"),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="196466",
+            preferred_term="Taxol",
+            synonyms=("taxol",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="282357",
+            preferred_term="fulvestrant",
+            synonyms=("fulvestrant",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="203546",
+            preferred_term="Compazine",
+            synonyms=("compazine",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="215101",
+            preferred_term="Aleve",
+            synonyms=("aleve",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="4850",
+            preferred_term="dextrose",
+            synonyms=("dextrose",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="151539",
+            preferred_term="Combivent",
+            synonyms=("combivent", "combivent nebs"),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="6574",
+            preferred_term="magnesium",
+            synonyms=("magnesium",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="227559",
+            preferred_term="Levophed",
+            synonyms=("levophed",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="8782",
+            preferred_term="propofol",
+            synonyms=("propofol",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="8153",
+            preferred_term="phentolamine",
+            synonyms=("phentolamine",),
+            release_id="rxnav-api-2026-07-05",
+            source_url=RXNORM_API_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.MEDICATION,
+            code_system="RxNorm",
+            code="151392",
+            preferred_term="Augmentin",
+            synonyms=("augmentin",),
+            release_id="rxnav-api-2026-07-05",
             source_url=RXNORM_API_URL,
         ),
     ]

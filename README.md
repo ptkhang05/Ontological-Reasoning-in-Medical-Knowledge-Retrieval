@@ -2,7 +2,7 @@
 
 Prototype FastAPI service for Viettel AI Race 2026 Medical Track: extracting
 clinical concepts from Vietnamese free-text records, assigning context, and
-normalizing diseases to ICD-10-CM and medications to RxNorm where source-backed
+normalizing diseases to ICD-10-format codes and medications to RxNorm where source-backed
 codes are available. This is not a diagnostic, treatment, or billing-authoritative
 system.
 

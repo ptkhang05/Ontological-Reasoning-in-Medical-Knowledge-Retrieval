@@ -28,6 +28,7 @@ IGNORED_VI_NEGATION_PREFIXES = (
     "dung nạp",
     "liên quan",
     "cải thiện",
+    "ngon miệng",
 )
 NEGATION_SCOPE_BOUNDARY_PATTERN = re.compile(
     r"[\n.;]|(?:\bkết\s+quả\b|\bcận\s+lâm\s+sàng\b|\bhình\s+ảnh\b|"

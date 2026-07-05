@@ -37,6 +37,7 @@ SYMPTOM_TERMS = (
     "vomiting",
     "dizziness",
     "khó thở khi gắng sức",
+    "khó thở tăng dần",
     "nhịp thở nhanh",
     "thiếu oxy",
     "đánh trống ngực",
@@ -48,8 +49,17 @@ SYMPTOM_TERMS = (
     "cảm giác bí tiếu",
     "bí tiểu",
     "bí tiếu",
+    "cảm giác có khối lồi trong âm đạo",
+    "cảm giác có khối sa lồi ra âm đạo",
+    "cảm giác căng tức vùng âm đạo",
+    "tiểu không tự chủ",
+    "tiểu dắt",
+    "tiểu buốt",
+    "khô âm đạo",
+    "đau khi giao hợp",
     "cơn co tử cung",
     "ra huyết âm đạo",
+    "ra huyết âm đạo lượng ít",
     "vỡ ối",
     "rỉ ối",
     "thắt chặt ngực",
@@ -69,6 +79,12 @@ SYMPTOM_TERMS = (
     "đau âm ỉ",
     "đau tăng dần",
     "đau dữ dội",
+    "đau ngực trái cấp tính",
+    "đau sau xương ức lan ra sau lưng",
+    "đau ngực lan ra sau lưng",
+    "đau ngực trái",
+    "đau sau xương ức",
+    "đau lan ra sau lưng",
     "đau vùng hạ sườn phải",
     "đau hạ sườn phải",
     "đau bụng vùng thượng vị",
@@ -88,14 +104,17 @@ SYMPTOM_TERMS = (
     "đờm trắng",
     "đờm vàng",
     "đờm",
+    "cảm giác có đờm ở cổ họng",
     "ho có đờm",
     "ho khan",
     "ho nhiều",
+    "ho tăng lên",
     "ho",
     "chảy nước mũi",
     "chóng mặt",
     "ngất xỉu",
     "phù ngoại vi",
+    "phù ngoại vi tăng dần",
     "phù chi dưới",
     "sưng phù hai mắt cá chân",
     "phù mắt cá chân",
@@ -117,8 +136,11 @@ SYMPTOM_TERMS = (
     "đau cổ và vai phải",
     "đau vai",
     "đau đầu gối phải",
+    "đau vùng xương bánh chè – đùi phải dữ dội",
     "đau vùng xương bánh chè - đùi phải",
+    "đau bánh chè đùi phải dữ dội",
     "đau hai bàn chân",
+    "đau bẹn trái",
     "đau chân",
     "đau cơ",
     "đau họng",
@@ -127,19 +149,30 @@ SYMPTOM_TERMS = (
     "khàn tiếng",
     "giọng khàn",
     "tổn thương dây thanh quản",
+    "triệu chứng trào ngược",
     "chướng bụng",
+    "vết thương thấu bụng giữa bên phải",
+    "vết thương thấu bụng",
+    "bầm máu vùng bẹn trái",
     "chán ăn",
     "ăn uống kém",
     "uống kém",
     "mất ăn ngon",
     "mất cảm giác ngon miệng",
     "ăn không ngon miệng",
+    "tăng cân trở lại",
+    "tăng cân",
+    "giảm cân",
     "toàn trạng suy kiệt",
     "suy kiệt",
+    "suy nhược toàn thân",
     "suy nhược",
+    "khó thở liên tục",
+    "hồi hộp",
     "run rẩy",
     "khó chịu",
     "yếu cơ",
+    "loét mới ở ngón chân út bên phải",
     "loét đau",
     "loét đỏ",
     "loét sưng",
@@ -155,14 +188,26 @@ SYMPTOM_TERMS = (
     "ran nổ",
     "ban đỏ",
     "ngứa da",
+    "ngứa da toàn thân nhiều",
     "ngứa",
     "mất trí nhớ",
+    "mất trí nhớ chi tiết",
+    "tình trạng tri giác giảm sút",
+    "yếu nửa người trái",
+    "yếu sức",
+    "yếu sức nửa người bên phải",
+    "không thể tự đứng dậy",
+    "không thể chịu lực",
+    "khuỵu chân",
     "ảo giác",
     "rối loạn ý thức",
     "mất định hướng",
     "lú lẫn",
     "ảo thanh",
     "ảo giác thị giác",
+    "cảm giác nặng ở chân trái",
+    "cảm giác châm chích",
+    "cảm giác tê",
     "tiểu khó",
     "khó chịu khi đi tiểu",
     "khó chịu khi đại tiện",
@@ -174,11 +219,16 @@ SYMPTOM_TERMS = (
     "phù gai thị",
     "mờ mắt",
     "nhìn mờ",
+    "nhìn song thị",
     "khó nhìn gần",
     "vụng về",
     "kéo lê chân",
+    "khó khăn khi ra khỏi ghế tựa",
     "khó khăn khi ăn",
     "khó khăn khi cài cúc áo",
+    "khó khăn khi ước lượng vị trí ngồi xuống ghế ăn trưa",
+    "cánh tay trái được cho là lơ lửng",
+    "cảm giác bất thường ở bên phải đầu",
     "khó nằm",
     "nhịp tim nhanh",
     "mạch nhanh",
@@ -438,6 +488,7 @@ class RuleBasedExtractor:
             )
         )
         candidates.extend(self._extract_contextual_symptoms(text))
+        candidates.extend(self._extract_contextual_medications(text))
         candidates.extend(self._extract_labs(text))
         candidates.extend(
             self._extract_terms(
@@ -622,6 +673,31 @@ class RuleBasedExtractor:
                         concept_type=ConceptType.SYMPTOM,
                         confidence=0.84,
                         source="contextual_symptom",
+                    )
+                )
+        return candidates
+
+    def _extract_contextual_medications(self, text: str) -> list[CandidateConcept]:
+        candidates: list[CandidateConcept] = []
+        patterns = (
+            re.compile(r"\bthay\s+thế\s+(bicarbonate)\b", re.I),
+            re.compile(
+                r"\btruyền\s+dịch\s*:?\s*(?:\d+\s*ml\s*)?(NS\s*0[.,]9\s*%)",
+                re.I,
+            ),
+            re.compile(r"\b(?:nhận|được\s+cho|dùng)\s+(40\s*meq\s+(?:po|iv)\s+k)\b", re.I),
+        )
+        for pattern in patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span(1)
+                candidates.append(
+                    CandidateConcept(
+                        text=text[start:end],
+                        start_offset=start,
+                        end_offset=end,
+                        concept_type=ConceptType.MEDICATION,
+                        confidence=0.84,
+                        source="contextual_medication",
                     )
                 )
         return candidates
@@ -812,10 +888,12 @@ def _is_blocked_medication_context(text: str, start: int, end: int) -> bool:
 
 def _is_blocked_symptom_context(text: str, start: int, end: int) -> bool:
     term = text[start:end].lower()
-    if term != "phù":
-        return False
     after = text[end : min(len(text), end + 12)].lower()
-    return after.lstrip().startswith("hợp")
+    if term == "phù":
+        return after.lstrip().startswith("hợp")
+    if term == "đỏ":
+        return after.lstrip().startswith("tươi")
+    return False
 
 
 def _is_leukemia_context(text: str, start: int, end: int) -> bool:
