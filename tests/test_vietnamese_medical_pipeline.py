@@ -1016,6 +1016,28 @@ def test_prefixed_medication_dose_and_route_are_included(client: TestClient) -> 
     assert medication_by_text["laxis 20mg tiêm tĩnh mạch"]["candidates"] == ["565450"]
 
 
+def test_btc_serializer_expands_normal_saline_percentage_span(
+    client: TestClient,
+) -> None:
+    text = "Điều trị: Truyền dịch Natriclori 0.9 % tĩnh mạch."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    medication_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "THUỐC"
+    }
+
+    assert "natriclori 0.9 %" in medication_by_text
+    assert medication_by_text["natriclori 0.9 %"]["position"] == [
+        text.index("Natriclori"),
+        text.index("%") + len("%"),
+    ]
+    assert medication_by_text["natriclori 0.9 %"]["candidates"] == ["313002"]
+
+
 def test_medication_expansion_does_not_include_dose_change_sentence(
     client: TestClient,
 ) -> None:

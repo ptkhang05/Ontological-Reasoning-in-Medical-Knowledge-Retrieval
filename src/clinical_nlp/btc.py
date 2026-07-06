@@ -55,11 +55,11 @@ ASSERTION_SUPPORTED_TYPES = {
     ConceptType.MEDICATION,
 }
 MEDICATION_EXPAND_HINT = re.compile(
-    r"\b(?:"
+    r"(?:\d+(?:[.,]\d+)?\s*%|\b(?:"
     r"\d+(?:[.,]\d+)?(?:-\d+(?:[.,]\d+)?)?\s*(?:mg|mcg|g|ml|mL|viên|ống|pill|pills)"
     r"|po|iv|sl|bid|qid|qhs|qam|q6h|prn|daily|once|succinate|xl|oral|suspension|sodium"
     r"|đường\s+uống|tiêm\s+tĩnh\s+mạch"
-    r")\b",
+    r")\b)",
     re.I,
 )
 MEDICATION_PREFIX_PATTERN = re.compile(
@@ -186,6 +186,8 @@ BTC_CANDIDATE_OVERRIDES = {
     "bicarbonate": ["36676"],
     "ns 0.9 %": ["313002"],
     "ns 0.9%": ["313002"],
+    "natriclori 0.9 %": ["313002"],
+    "natriclori 0.9%": ["313002"],
     "4000 ml ns 0.9 %": ["313002"],
     "4000 ml ns 0.9%": ["313002"],
     "40meq po k": ["2728723"],
@@ -319,6 +321,9 @@ def _expanded_medication_span(concept: Concept, source_text: str) -> tuple[int, 
     if not has_tail_expansion:
         expanded_end = concept.end_offset
 
+    expanded_end = _normal_saline_concentration_end(
+        source_text, concept.start_offset, expanded_end
+    )
     while expanded_end > concept.end_offset and source_text[expanded_end - 1] in " \t.:-":
         expanded_end -= 1
     return expanded_start, expanded_end
@@ -339,6 +344,18 @@ def _expanded_medication_start(concept: Concept, source_text: str) -> int:
     if match.start() > 0 and before[match.start() - 1].isalpha():
         return concept.start_offset
     return concept.start_offset - (len(before) - match.start())
+
+
+def _normal_saline_concentration_end(
+    source_text: str, start_offset: int, expanded_end: int
+) -> int:
+    phrase = source_text[start_offset:expanded_end]
+    if not _candidate_key(phrase).startswith(("natriclori", "ns ")):
+        return expanded_end
+    percent_index = phrase.find("%")
+    if percent_index == -1:
+        return expanded_end
+    return start_offset + percent_index + 1
 
 
 def _assertions_for(
