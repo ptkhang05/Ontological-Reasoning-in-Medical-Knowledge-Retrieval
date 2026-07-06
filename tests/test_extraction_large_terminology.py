@@ -85,3 +85,56 @@ def test_icd_symptom_terms_do_not_override_symptom_extraction() -> None:
         and candidate.concept_type == ConceptType.DISEASE
         for candidate in candidates
     )
+
+
+def test_icd_social_external_and_symptom_terms_are_not_extracted_as_diseases() -> None:
+    store = TerminologyStore(
+        [
+            TerminologyEntry(
+                concept_type=ConceptType.DISEASE,
+                code_system="ICD-10-TT06",
+                code=code,
+                preferred_term=term,
+                synonyms=(),
+                release_id="TT06-2026",
+                source_url="https://icd.kcb.vn/icd-10-tt06/icd10-tt06",
+            )
+            for code, term in [
+                ("Z72.1", "sử dụng rượu"),
+                ("Z72.0", "sử dụng thuốc lá"),
+                ("V01", "tai nạn"),
+                ("U83.0", "kháng vancomycin"),
+                ("R11", "buồn nôn hoặc nôn"),
+                ("R19.4", "thay đổi thói quen đại tiện"),
+            ]
+        ]
+    )
+    extractor = RuleBasedExtractor(store)
+
+    candidates = extractor.extract(
+        "Có sử dụng rượu, sử dụng thuốc lá sau tai nạn. "
+        "Ghi nhận kháng vancomycin, buồn nôn hoặc nôn và thay đổi thói quen đại tiện."
+    )
+
+    diagnosis_texts = {
+        candidate.text.lower()
+        for candidate in candidates
+        if candidate.concept_type == ConceptType.DISEASE
+    }
+    assert diagnosis_texts.isdisjoint(
+        {
+            "sử dụng rượu",
+            "sử dụng thuốc lá",
+            "tai nạn",
+            "kháng vancomycin",
+            "buồn nôn hoặc nôn",
+            "thay đổi thói quen đại tiện",
+        }
+    )
+    symptom_texts = {
+        candidate.text.lower()
+        for candidate in candidates
+        if candidate.concept_type == ConceptType.SYMPTOM
+    }
+    assert "buồn nôn hoặc nôn" in symptom_texts
+    assert "thay đổi thói quen đại tiện" in symptom_texts

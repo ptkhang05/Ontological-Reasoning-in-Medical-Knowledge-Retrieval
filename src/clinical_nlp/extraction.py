@@ -67,6 +67,7 @@ SYMPTOM_TERMS = (
     "khó chịu vùng ngực",
     "đau ngực",
     "buồn nôn",
+    "buồn nôn hoặc nôn",
     "nôn ra máu",
     "nôn",
     "đổ mồ hôi qua đêm",
@@ -96,6 +97,7 @@ SYMPTOM_TERMS = (
     "đau hố chậu",
     "đau bụng",
     "tiêu chảy",
+    "thay đổi thói quen đại tiện",
     "đại tiện ra máu đỏ tươi",
     "đi ngoài ra máu",
     "phân có máu",
@@ -472,6 +474,12 @@ UNKNOWN_DISEASE_STOPWORDS = {
     "trước",
     "nghẽn",
 }
+TERMINOLOGY_DISEASE_BLOCK_TERMS = (
+    "sử dụng rượu",
+    "sử dụng thuốc lá",
+    "tai nạn",
+    "kháng vancomycin",
+)
 
 
 class RuleBasedExtractor:
@@ -978,7 +986,11 @@ def _compile_term_pattern(terms: list[str]) -> re.Pattern[str] | None:
 
 
 def _extractable_disease_terminology_terms(terms: list[str]) -> list[str]:
-    blocked_folds = {fold_term(term) for term in (*SYMPTOM_TERMS, *LAB_NAMES) if term}
+    blocked_folds = {
+        fold_term(term)
+        for term in (*SYMPTOM_TERMS, *LAB_NAMES, *TERMINOLOGY_DISEASE_BLOCK_TERMS)
+        if term
+    }
     curated_disease_folds = {fold_term(term) for term in VI_DISEASE_TERMS if term}
     extractable: list[str] = []
     for term in terms:
