@@ -7,8 +7,11 @@ from clinical_nlp.context import sentence_bounds
 from clinical_nlp.schemas import Concept, ConceptType, Relation, RelationType
 
 LAB_VALUE_UNIT = r"mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|cm|mm|%"
+LAB_NUMERIC_CORE = r"(?:[<>]=?|≥|≤)?\s*\d+(?:[.,]\d+)*"
 LAB_NUMERIC_VALUE = (
-    rf"(?:[<>]=?|≥|≤)?\s*\d+(?:[.,]\d+)*(?:\s*(?:{LAB_VALUE_UNIT}))?"
+    rf"{LAB_NUMERIC_CORE}"
+    rf"(?:\s*(?:-->|->|[-–—]|đến)\s*\d+(?:[.,]\d+)*)?"
+    rf"(?:\s*(?:{LAB_VALUE_UNIT}))?"
 )
 DOSAGE_PATTERN = re.compile(
     r"\s*(\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|mL|viên|ống)(?:\s*x\s*\d+)?)\b",
@@ -157,8 +160,9 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
     match = _find_valid_lab_value_match(text, lab, tail)
     if match is None:
         return []
-    value_start = lab.end_offset + match.start(1)
-    value_end = lab.end_offset + match.end(1)
+    value_start, value_end = _trimmed_lab_value_span(text, lab.end_offset, match)
+    if value_start >= value_end:
+        return []
     return [
         Relation(
             relation_id=str(uuid.uuid4()),
@@ -193,8 +197,7 @@ def _is_valid_lab_value_match(
     if LAB_NUMERIC_PATTERN.fullmatch(value) is None:
         return True
 
-    value_start = lab.end_offset + match.start(1)
-    value_end = lab.end_offset + match.end(1)
+    value_start, value_end = _trimmed_lab_value_span(text, lab.end_offset, match)
     between_lab_and_value = text[lab.end_offset:value_start]
     if _is_non_lab_numeric_context(text, value_start, value_end, between_lab_and_value):
         return False
@@ -203,6 +206,17 @@ def _is_valid_lab_value_match(
     if "." in value or "," in value:
         return True
     return True
+
+
+def _trimmed_lab_value_span(
+    text: str, base_offset: int, match: re.Match[str]
+) -> tuple[int, int]:
+    raw_start = base_offset + match.start(1)
+    raw_end = base_offset + match.end(1)
+    raw_value = text[raw_start:raw_end]
+    leading_trim = len(raw_value) - len(raw_value.lstrip())
+    trailing_trim = len(raw_value) - len(raw_value.rstrip())
+    return raw_start + leading_trim, raw_end - trailing_trim
 
 
 def _is_non_lab_numeric_context(
@@ -214,6 +228,12 @@ def _is_non_lab_numeric_context(
     next_character = text[value_end] if value_end < len(text) else ""
     before_context = stripped_before[-80:]
 
+    if (
+        next_character in ".,"
+        and value_end + 1 < len(text)
+        and text[value_end + 1].isdigit()
+    ):
+        return True
     if previous_character.isalpha() or previous_character in "-/":
         return True
     if next_character in "-/":

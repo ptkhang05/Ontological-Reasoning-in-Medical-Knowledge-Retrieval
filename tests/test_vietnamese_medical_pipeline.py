@@ -732,6 +732,40 @@ def test_lab_values_keep_comparators_and_units_from_source_text(
     assert lab_values.isdisjoint({"7", "80", "15", "2"})
 
 
+def test_lab_values_trim_surrounding_whitespace_from_source_span(
+    client: TestClient,
+) -> None:
+    text = (
+        "Cận lâm sàng: creatinine   1.2. "
+        "Creatinine ổn định ở mức 1.4-1.6. "
+        "Lactate 1.1-->0.8. "
+        "Siêu âm:  không phát hiện huyết khối tĩnh mạch sâu \n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = [
+        entity for entity in response.json() if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    ]
+    entity_by_text = {entity["text"]: entity for entity in lab_values}
+
+    assert "1.2" in entity_by_text
+    assert entity_by_text["1.2"]["position"] == [
+        text.index("1.2"),
+        text.index("1.2") + len("1.2"),
+    ]
+    assert "1.4-1.6" in entity_by_text
+    assert "1.1-->0.8" in entity_by_text
+    assert "1" not in entity_by_text
+    textual_value = "không phát hiện huyết khối tĩnh mạch sâu"
+    assert textual_value in entity_by_text
+    assert entity_by_text[textual_value]["position"] == [
+        text.index(textual_value),
+        text.index(textual_value) + len(textual_value),
+    ]
+
+
 def test_history_section_marks_conditions_historical(client: TestClient) -> None:
     text = (
         "1. Tiền sử bệnh nội khoa\n"
