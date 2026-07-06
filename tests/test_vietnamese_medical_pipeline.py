@@ -766,6 +766,84 @@ def test_lab_values_trim_surrounding_whitespace_from_source_span(
     ]
 
 
+def test_lab_values_prefer_number_after_elevated_to_cue(client: TestClient) -> None:
+    text = "Kết quả xét nghiệm: công thức máu (cbc) nâng cao lên 11.3."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = [
+        entity for entity in response.json() if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    ]
+    entity_by_text = {entity["text"]: entity for entity in lab_values}
+
+    assert "11.3" in entity_by_text
+    assert "cao" not in entity_by_text
+    assert entity_by_text["11.3"]["position"] == [
+        text.index("11.3"),
+        text.index("11.3") + len("11.3"),
+    ]
+
+
+def test_btc_lab_values_drop_nested_overlapping_textual_values(
+    client: TestClient,
+) -> None:
+    text = "Sinh thiết lấy mẫu bằng bàn chải cho thấy tế bào bất thường."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = [
+        entity for entity in response.json() if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    ]
+    entity_by_text = {entity["text"]: entity for entity in lab_values}
+
+    assert "tế bào bất thường" in entity_by_text
+    assert "bất thường" not in entity_by_text
+
+
+def test_lab_values_prefer_numeric_trend_after_increase_decrease_cues(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả xét nghiệm: kali vẫn giảm xuống 2.2. "
+        "Creatinine tăng từ 5.2 lên 6.3 mg/dl và Ure tăng từ 69 lên 91 mg/dl. "
+        "Bilirubin toàn phần bắt đầu tăng lên đạt đỉnh 6.7."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = {
+        entity["text"]
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {"2.2", "5.2 lên 6.3 mg/dl", "69 lên 91 mg/dl", "6.7"}.issubset(
+        lab_values
+    )
+    assert lab_values.isdisjoint({"tăng", "giảm"})
+
+
+def test_lab_values_keep_textual_increase_high_as_single_value(
+    client: TestClient,
+) -> None:
+    text = "Cận lâm sàng: creatinine tăng cao."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = {
+        entity["text"]
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert "tăng cao" in lab_values
+    assert "cao" not in lab_values
+
+
 def test_history_section_marks_conditions_historical(client: TestClient) -> None:
     text = (
         "1. Tiền sử bệnh nội khoa\n"

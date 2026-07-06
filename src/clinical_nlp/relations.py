@@ -10,7 +10,7 @@ LAB_VALUE_UNIT = r"mg/dL|mg/dl|mmol/L|mmol/l|mEq/L|G/L|g/l|cm|mm|%"
 LAB_NUMERIC_CORE = r"(?:[<>]=?|≥|≤)?\s*\d+(?:[.,]\d+)*"
 LAB_NUMERIC_VALUE = (
     rf"{LAB_NUMERIC_CORE}"
-    rf"(?:\s*(?:-->|->|[-–—]|đến)\s*\d+(?:[.,]\d+)*)?"
+    rf"(?:\s*(?:-->|->|[-–—]|đến|lên|xuống)\s*{LAB_NUMERIC_CORE})?"
     rf"(?:\s*(?:{LAB_VALUE_UNIT}))?"
 )
 DOSAGE_PATTERN = re.compile(
@@ -19,9 +19,13 @@ DOSAGE_PATTERN = re.compile(
 )
 LAB_VALUE_PATTERN = re.compile(
     r"[\s:)]*(?:\([^)]*\)\s*)?"
+    r"(?:(?:toàn\s+phần|bắt\s+đầu)\s+){0,2}"
     r"(?:(?:cho\s+thấy|ghi\s+nhận|kết\s+quả)\s+[^.;,\n]{0,80}?\s+)?"
-    r"(?:is|=|:|là|tăng\s+là|tăng\s+nhẹ\s+lên|tăng\s+lên|tăng|"
-    r"giảm\s+còn|giảm|cao\s+là|trả\s+về\s+là)?\s*"
+    r"(?:is|=|:|là|tăng\s+từ|tăng\s+lên\s+đạt\s+đỉnh|tăng\s+là|"
+    r"tăng\s+nhẹ\s+lên|tăng\s+lên|tăng(?=\s*(?:[<>]=?|≥|≤)?\d)|"
+    r"vẫn\s+giảm\s+xuống|giảm\s+xuống|giảm\s+còn|"
+    r"giảm(?=\s*(?:[<>]=?|≥|≤)?\d)|nâng\s+cao\s+lên|cao\s+là|"
+    r"trả\s+về\s+là)?\s*"
     r"("
     + LAB_NUMERIC_VALUE +
     r""
@@ -80,8 +84,11 @@ LAB_NUMERIC_PATTERN = re.compile(
     re.I,
 )
 LAB_NUMERIC_CUE_PATTERN = re.compile(
-    r"(?:=|:|\blà\b|\btăng(?:\s+(?:là|nhẹ\s+lên|lên))?\b|"
-    r"\bgiảm(?:\s+còn)?\b|\bcao\s+là\b|\btrả\s+về\s+là\b)",
+    r"(?:=|:|\blà\b|\btăng\s+từ\b|\btăng\s+lên\s+đạt\s+đỉnh\b|"
+    r"\btăng(?:\s+(?:là|nhẹ\s+lên|lên))?\b|"
+    r"\bvẫn\s+giảm\s+xuống\b|\bgiảm(?:\s+(?:xuống|còn))?\b|"
+    r"\bnâng\s+cao\s+lên\b|\bcao\s+là\b|"
+    r"\btrả\s+về\s+là\b)",
     re.I,
 )
 NON_LAB_NUMERIC_CONTEXT_PATTERN = re.compile(

@@ -477,6 +477,34 @@ def _dedupe_entities(entities: list[BtcEntity]) -> list[BtcEntity]:
         key = (entity.position[0], entity.position[1], entity.type, entity.text)
         if key in seen:
             continue
+        overlap_index = _overlapping_lab_value_index(deduped, entity)
+        if overlap_index is not None:
+            existing = deduped[overlap_index]
+            if _span_length(entity) > _span_length(existing):
+                deduped[overlap_index] = entity
+                seen.add(key)
+            continue
         seen.add(key)
         deduped.append(entity)
     return deduped
+
+
+def _overlapping_lab_value_index(
+    entities: list[BtcEntity], candidate: BtcEntity
+) -> int | None:
+    if candidate.type != BtcConceptType.LAB_VALUE:
+        return None
+    for index, existing in enumerate(entities):
+        if existing.type == candidate.type and _spans_overlap(
+            existing.position, candidate.position
+        ):
+            return index
+    return None
+
+
+def _spans_overlap(left: list[int], right: list[int]) -> bool:
+    return left[0] < right[1] and right[0] < left[1]
+
+
+def _span_length(entity: BtcEntity) -> int:
+    return entity.position[1] - entity.position[0]
