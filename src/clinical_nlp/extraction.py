@@ -480,6 +480,25 @@ TERMINOLOGY_DISEASE_BLOCK_TERMS = (
     "tai nạn",
     "kháng vancomycin",
 )
+TERMINOLOGY_MEDICATION_BLOCK_TERMS = (
+    "albumin",
+    "bilirubin",
+    "calcium",
+    "chloride",
+    "cholesterol",
+    "creatinine",
+    "glucose",
+    "guaiac",
+    "hemoglobin",
+    "lactate",
+    "phosphate",
+    "phosphorus",
+    "potassium",
+    "sodium",
+    "triglycerides",
+    "troponin",
+    "urea",
+)
 
 
 class RuleBasedExtractor:
@@ -488,8 +507,8 @@ class RuleBasedExtractor:
         self._disease_terminology_terms = _extractable_disease_terminology_terms(
             self._terminology.search_terms_for(ConceptType.DISEASE)
         )
-        self._medication_terminology_terms = self._terminology.search_terms_for(
-            ConceptType.MEDICATION
+        self._medication_terminology_terms = _extractable_medication_terminology_terms(
+            self._terminology.search_terms_for(ConceptType.MEDICATION)
         )
         self._disease_terminology_pattern = _compile_term_pattern(
             self._disease_terminology_terms
@@ -786,7 +805,7 @@ class RuleBasedExtractor:
             term.lower()
             for term in (
                 *VI_MEDICATION_TERMS,
-                *self._terminology.search_terms_for(ConceptType.MEDICATION),
+                *self._medication_terminology_terms,
             )
             if len(term) >= 5 and " " not in term
         }
@@ -830,7 +849,7 @@ class RuleBasedExtractor:
             term.lower()
             for term in (
                 *VI_MEDICATION_TERMS,
-                *self._terminology.search_terms_for(ConceptType.MEDICATION),
+                *self._medication_terminology_terms,
             )
             if len(term) >= 5 and " " not in term
         }
@@ -1003,6 +1022,11 @@ def _extractable_disease_terminology_terms(terms: list[str]) -> list[str]:
             continue
         extractable.append(term)
     return extractable
+
+
+def _extractable_medication_terminology_terms(terms: list[str]) -> list[str]:
+    blocked_folds = {fold_term(term) for term in TERMINOLOGY_MEDICATION_BLOCK_TERMS}
+    return [term for term in terms if fold_term(term) not in blocked_folds]
 
 
 def _has_non_ascii(text: str) -> bool:

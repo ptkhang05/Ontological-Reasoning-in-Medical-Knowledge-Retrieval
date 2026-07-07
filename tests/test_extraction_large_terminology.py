@@ -138,3 +138,39 @@ def test_icd_social_external_and_symptom_terms_are_not_extracted_as_diseases() -
     }
     assert "buồn nôn hoặc nôn" in symptom_texts
     assert "thay đổi thói quen đại tiện" in symptom_texts
+
+
+def test_rxnorm_lab_analytes_are_not_extracted_as_medications() -> None:
+    store = TerminologyStore(
+        [
+            TerminologyEntry(
+                concept_type=ConceptType.MEDICATION,
+                code_system="RxNorm",
+                code=code,
+                preferred_term=term,
+                synonyms=(),
+                release_id="RxNorm-test",
+                source_url="https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html",
+            )
+            for code, term in [
+                ("214275", "creatinine"),
+                ("4850", "glucose"),
+                ("2364", "guaiac"),
+                ("202433", "Tylenol"),
+            ]
+        ]
+    )
+    extractor = RuleBasedExtractor(store)
+
+    candidates = extractor.extract(
+        "Kết quả xét nghiệm: glucose 537, cr (creatinine) 1.2. "
+        "Phân dương tính guaiac. Dùng Tylenol khi đau."
+    )
+
+    medication_texts = {
+        candidate.text.lower()
+        for candidate in candidates
+        if candidate.concept_type == ConceptType.MEDICATION
+    }
+    assert "tylenol" in medication_texts
+    assert medication_texts.isdisjoint({"creatinine", "glucose", "guaiac"})

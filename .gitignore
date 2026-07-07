@@ -22,6 +22,7 @@ tmp/
 *.pdf
 .venv/
 venv/
+RxNorm_*.zip
 data/terminologies/*.zip
 data/terminologies/*.rrf
 data/terminologies/*.RRF
