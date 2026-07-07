@@ -148,11 +148,10 @@ def has_cue(text: str, cue: str) -> bool:
 
 
 def sentence_bounds(text: str, start: int, end: int) -> tuple[int, int]:
-    del end
     left = max(_rfind_sentence_dot(text, start), text.rfind("\n", 0, start))
     sentence_start = 0 if left == -1 else left + 1
-    right_dot = _find_sentence_dot(text, start)
-    right_newline = text.find("\n", start)
+    right_dot = _find_sentence_dot(text, end)
+    right_newline = text.find("\n", end)
     right_candidates = [index for index in (right_dot, right_newline) if index != -1]
     sentence_end = min(right_candidates) if right_candidates else len(text)
     return sentence_start, sentence_end

@@ -978,6 +978,95 @@ def test_common_public_lab_analytes_with_preceding_values_are_extracted(
     }.issubset(lab_values)
 
 
+def test_public_liver_and_serology_lab_names_keep_specific_spans(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả xét nghiệm\n"
+        "- phosphatase kiềm (ap) là 983\n"
+        "- bilirubin toàn phần (tbili) là 2.4\n"
+        "- ast 421\n"
+        "- alt 336\n"
+        "- alp 185\n"
+        "- bilirubin toàn phần 0.9\n"
+        "- total bili bắt đầu tăng lên đạt đỉnh 6.7\n"
+        "- bảng xét nghiệm viêm gan virus là âm tính\n"
+        "- ferritin là bình thường\n"
+        "- ceruloplasmin vẫn đang chờ kết quả\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {
+        "phosphatase kiềm (ap)",
+        "bilirubin toàn phần (tbili)",
+        "ast",
+        "alt",
+        "alp",
+        "bilirubin toàn phần",
+        "total bili",
+        "bảng xét nghiệm viêm gan virus",
+        "ferritin",
+        "ceruloplasmin",
+    }.issubset(lab_names)
+    assert {
+        "983",
+        "2.4",
+        "421",
+        "336",
+        "185",
+        "0.9",
+        "6.7",
+        "âm tính",
+        "bình thường",
+        "đang chờ",
+    }.issubset(lab_values)
+    assert "bilirubin" not in lab_names
+
+
+def test_public_parasitology_and_h_pylori_tests_are_extracted(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả phòng thí nghiệm\n"
+        "- dương tính xét nghiệm phân tìm cryptosporidium\n"
+        "- test hơi thở h. pylori âm tính\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = [
+        entity
+        for entity in response.json()
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    ]
+    lab_values = [
+        entity
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    ]
+
+    assert {
+        "xét nghiệm phân tìm cryptosporidium",
+        "test hơi thở h. pylori",
+    }.issubset({entity["text"].lower() for entity in lab_names})
+    assert [entity["text"].lower() for entity in lab_values].count("dương tính") == 1
+    assert [entity["text"].lower() for entity in lab_values].count("âm tính") == 1
+
+
 def test_imaging_probability_result_keeps_full_phrase(client: TestClient) -> None:
     text = (
         "Xạ hình thông khí - tưới máu phổi cho thấy xác suất thấp thuyên tắc phổi."

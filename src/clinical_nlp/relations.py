@@ -125,6 +125,7 @@ PRECEDING_VALUE_LAB_NAMES = {
     "lymphocyte",
     "neutrophil",
     "nitrite",
+    "xét nghiệm phân tìm cryptosporidium",
 }
 
 
