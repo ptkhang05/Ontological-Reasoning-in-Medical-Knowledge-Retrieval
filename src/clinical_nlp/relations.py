@@ -37,6 +37,7 @@ LAB_VALUE_PATTERN = re.compile(
     r"|không\s+thấy(?:\s+[^.;,\n()]+)?"
     r"|tế\s+bào\s+bất\s+thường"
     r"|bất\s+thường"
+    r"|đang\s+chờ"
     r"|nhịp\s+xoang"
     r"|âm\s+tính"
     r"|dương\s+tính"
@@ -62,6 +63,7 @@ LAB_VALUE_SEARCH_PATTERN = re.compile(
     r"|không\s+thấy(?:\s+[^.;,\n()]+)?"
     r"|tế\s+bào\s+bất\s+thường"
     r"|bất\s+thường"
+    r"|đang\s+chờ"
     r"|nhịp\s+xoang"
     r"|âm\s+tính"
     r"|dương\s+tính"
@@ -73,6 +75,10 @@ LAB_VALUE_SEARCH_PATTERN = re.compile(
     r"|cao"
     r"|thấp"
     r")(?=$|[\s.;,\n)])",
+    re.I,
+)
+PREFERRED_LAB_VALUE_SEARCH_PATTERN = re.compile(
+    r"(xác\s+suất\s+thấp\s+thuyên\s+tắc\s+phổi)(?=$|[\s.;,\n)])",
     re.I,
 )
 LAB_VALUE_UNIT_PATTERN = re.compile(
@@ -106,7 +112,20 @@ NON_LAB_COUNT_AFTER_PATTERN = re.compile(
 )
 SHORT_TEXTUAL_TREND_VALUES = {"tăng", "giảm", "cao", "thấp"}
 NON_LAB_TEXTUAL_TREND_CONTEXT_PATTERN = re.compile(r"(?:\bgóc\s*$|\blàm\s*$)", re.I)
-PRECEDING_LAB_VALUE_PATTERN = re.compile(r"(âm\s+tính|dương\s+tính)\s*$", re.I)
+PRECEDING_LAB_VALUE_PATTERN = re.compile(
+    rf"({LAB_NUMERIC_VALUE}|âm\s+tính|dương\s+tính|bình\s+thường|"
+    r"bất\s+thường|đang\s+chờ)\s*$",
+    re.I,
+)
+PRECEDING_VALUE_LAB_NAMES = {
+    "bạch cầu",
+    "chem 7",
+    "guaiac",
+    "hồng cầu",
+    "lymphocyte",
+    "neutrophil",
+    "nitrite",
+}
 
 
 def extract_relations(text: str, concepts: list[Concept]) -> list[Relation]:
@@ -166,10 +185,13 @@ def _dosage_relations(text: str, medication: Concept) -> list[Relation]:
 
 def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
     _, sentence_end = sentence_bounds(text, lab.start_offset, lab.end_offset)
+    preceding_relations = _preceding_lab_value_relations(text, lab)
+    if preceding_relations:
+        return preceding_relations
     tail = text[lab.end_offset:sentence_end]
     match = _find_valid_lab_value_match(text, lab, tail)
     if match is None:
-        return _preceding_lab_value_relations(text, lab)
+        return []
     value_start, value_end = _trimmed_lab_value_span(text, lab.end_offset, match)
     if value_start >= value_end:
         return []
@@ -188,7 +210,7 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
 
 
 def _preceding_lab_value_relations(text: str, lab: Concept) -> list[Relation]:
-    if text[lab.start_offset : lab.end_offset].lower() != "guaiac":
+    if text[lab.start_offset : lab.end_offset].lower() not in PRECEDING_VALUE_LAB_NAMES:
         return []
     sentence_start, _ = sentence_bounds(text, lab.start_offset, lab.end_offset)
     head = text[sentence_start : lab.start_offset]
@@ -197,6 +219,11 @@ def _preceding_lab_value_relations(text: str, lab: Concept) -> list[Relation]:
         return []
     value_start = sentence_start + match.start(1)
     value_end = sentence_start + match.end(1)
+    raw_value = text[value_start:value_end]
+    value_start += len(raw_value) - len(raw_value.lstrip())
+    value_end -= len(raw_value) - len(raw_value.rstrip())
+    if value_start >= value_end:
+        return []
     return [
         Relation(
             relation_id=str(uuid.uuid4()),
@@ -214,6 +241,12 @@ def _preceding_lab_value_relations(text: str, lab: Concept) -> list[Relation]:
 def _find_valid_lab_value_match(
     text: str, lab: Concept, tail: str
 ) -> re.Match[str] | None:
+    preferred_match = PREFERRED_LAB_VALUE_SEARCH_PATTERN.search(tail)
+    if preferred_match is not None and _is_valid_lab_value_match(
+        text, lab, preferred_match
+    ):
+        return preferred_match
+
     match = LAB_VALUE_PATTERN.match(tail)
     if match is not None and _is_valid_lab_value_match(text, lab, match):
         return match

@@ -918,6 +918,84 @@ def test_guaiac_lab_accepts_positive_value_before_or_after_name(
     assert len(positive_values) == 2
 
 
+def test_common_public_lab_analytes_with_preceding_values_are_extracted(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả xét nghiệm máu\n"
+        "- bạch cầu 13.9\n"
+        "- 80 neutrophil\n"
+        "- 11 lymphocyte\n"
+        "- bình thường chem 7\n"
+        "- ck 58\n"
+        "- alt 92\n"
+        "- hiv vl đang chờ\n"
+        "- soi tươi ký sinh trùng âm tính\n"
+        "- hco3- (bicarbonate) 20\n"
+        "- tổng phân tích nước tiểu: 12 bạch cầu, 1 hồng cầu, âm tính nitrite\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {
+        "bạch cầu",
+        "neutrophil",
+        "lymphocyte",
+        "chem 7",
+        "ck",
+        "alt",
+        "hiv vl",
+        "soi tươi ký sinh trùng",
+        "hco3- (bicarbonate)",
+        "tổng phân tích nước tiểu",
+        "hồng cầu",
+        "nitrite",
+    }.issubset(lab_names)
+    assert {
+        "13.9",
+        "80",
+        "11",
+        "bình thường",
+        "58",
+        "92",
+        "đang chờ",
+        "âm tính",
+        "20",
+        "12",
+        "1",
+    }.issubset(lab_values)
+
+
+def test_imaging_probability_result_keeps_full_phrase(client: TestClient) -> None:
+    text = (
+        "Xạ hình thông khí - tưới máu phổi cho thấy xác suất thấp thuyên tắc phổi."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert "xác suất thấp thuyên tắc phổi" in lab_values
+    assert "thấp" not in lab_values
+
+
 def test_history_section_marks_conditions_historical(client: TestClient) -> None:
     text = (
         "1. Tiền sử bệnh nội khoa\n"
