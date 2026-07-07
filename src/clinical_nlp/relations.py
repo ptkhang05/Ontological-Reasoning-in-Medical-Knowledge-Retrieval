@@ -119,6 +119,7 @@ PRECEDING_LAB_VALUE_PATTERN = re.compile(
 )
 PRECEDING_VALUE_LAB_NAMES = {
     "bạch cầu",
+    "cấy máu",
     "chem 7",
     "guaiac",
     "hồng cầu",

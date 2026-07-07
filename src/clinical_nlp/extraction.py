@@ -249,6 +249,7 @@ LAB_NAMES = (
     "hco3- (bicarbonate)",
     "troponin",
     "inr",
+    "huyết cầu tố",
     "bạch cầu",
     "hồng cầu",
     "wbc",
@@ -283,6 +284,7 @@ LAB_NAMES = (
     "cea",
     "kháng nguyên ung thư phôi",
     "canxi toàn phần",
+    "canx toàn phầni",
     "canxi ion hóa",
     "canxi",
     "creatinin",
@@ -292,6 +294,8 @@ LAB_NAMES = (
     "ua (urinalysis - tổng phân tích nước tiểu)",
     "ua",
     "urinalysis",
+    "đường huyết lúc đói",
+    "công thức sinh hóa máu cơ bản",
     "guaiac",
     "nitrite",
     "huyết thanh",
@@ -299,6 +303,8 @@ LAB_NAMES = (
     "bảng xét nghiệm viêm gan virus",
     "ferritin",
     "ceruloplasmin",
+    "định lượng iga",
+    "chỉ số marker viêm",
     "xét nghiệm phân tìm cryptosporidium",
     "test hơi thở h. pylori",
     "xét nghiệm tế bào học",
@@ -560,6 +566,7 @@ class RuleBasedExtractor:
         )
         candidates.extend(self._extract_contextual_symptoms(text))
         candidates.extend(self._extract_contextual_medications(text))
+        candidates.extend(self._extract_contextual_labs(text))
         candidates.extend(self._extract_labs(text))
         candidates.extend(
             self._extract_terms(
@@ -801,6 +808,47 @@ class RuleBasedExtractor:
                         concept_type=ConceptType.MEDICATION,
                         confidence=0.84,
                         source="contextual_medication",
+                    )
+                )
+        return candidates
+
+    def _extract_contextual_labs(self, text: str) -> list[CandidateConcept]:
+        candidates: list[CandidateConcept] = []
+        patterns = (
+            re.compile(r"(?im)(?:^|[;\n])\s*(?:[-*]\s*)?(k)\s+(?=\d)"),
+            re.compile(r"(?im)(?:^|[;\n])\s*(?:[-*]\s*)?(k)\s+là\s+(?=\d)"),
+            re.compile(
+                r"(?im)\bkết\s+quả\s+xét\s+nghiệm\s*:\s*"
+                r"(huyết\s+khối)(?=\s+\d)"
+            ),
+            re.compile(
+                r"(?i)(đường\s+huyết\s+lúc\s+đói)"
+                r"(?=đường\s+huyết\s+(?:thấp|cao|bình\s+thường))"
+            ),
+            re.compile(
+                r"(?im)(?:^|[\n])\s*(?:[-*]\s*)?"
+                r"(cấy\s+máu)\s*:?\s*(?=âm\s+tính|dương\s+tính)"
+            ),
+            re.compile(
+                r"(?im)\bkết\s+quả\s+(cấy\s+máu)\s+"
+                r"(?=âm\s+tính|dương\s+tính)"
+            ),
+            re.compile(r"(?im)(?:âm\s+tính|dương\s+tính)\s+(cấy\s+máu)\b"),
+            re.compile(
+                r"(?im)^\s*[-*]\s*(cúm)\s+(?=âm\s+tính|dương\s+tính)"
+            ),
+        )
+        for pattern in patterns:
+            for match in pattern.finditer(text):
+                start, end = match.span(1)
+                candidates.append(
+                    CandidateConcept(
+                        text=text[start:end],
+                        start_offset=start,
+                        end_offset=end,
+                        concept_type=ConceptType.LAB_RESULT,
+                        confidence=0.84,
+                        source="contextual_lab",
                     )
                 )
         return candidates

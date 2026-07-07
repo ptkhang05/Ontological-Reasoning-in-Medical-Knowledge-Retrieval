@@ -1067,6 +1067,88 @@ def test_public_parasitology_and_h_pylori_tests_are_extracted(
     assert [entity["text"].lower() for entity in lab_values].count("âm tính") == 1
 
 
+def test_public_contextual_lab_abbreviations_cultures_and_ocr_terms(
+    client: TestClient,
+) -> None:
+    text = (
+        "Kết quả xét nghiệm\n"
+        "- huyết cầu tố là 26.1\n"
+        "- công thức sinh hóa máu cơ bản bình thường\n"
+        "- k 5.8\n"
+        "- Định lượng IgA tăng cao\n"
+        "- đường huyết lúc đóiđường huyết thấp)\n"
+        "- canx toàn phầni là 12.3\n"
+        "- chỉ số marker viêm của anh ấy đã có xu hướng tăng\n"
+        "Kết quả xét nghiệm: huyết khối 26.3, giảm so với hôm qua.\n"
+        "Cận lâm sàng:\n"
+        "- cấy máu :âm tính\n"
+        "- dương tính cấy máu khi tái khám với GPRs\n"
+        "- cúm âm tính\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    }
+    lab_values = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert {
+        "huyết cầu tố",
+        "công thức sinh hóa máu cơ bản",
+        "k",
+        "định lượng iga",
+        "đường huyết lúc đói",
+        "canx toàn phầni",
+        "chỉ số marker viêm",
+        "huyết khối",
+        "cấy máu",
+        "cúm",
+    }.issubset(lab_names)
+    assert {
+        "26.1",
+        "bình thường",
+        "5.8",
+        "tăng cao",
+        "thấp",
+        "12.3",
+        "tăng",
+        "26.3",
+        "âm tính",
+        "dương tính",
+    }.issubset(lab_values)
+
+
+def test_contextual_culture_and_thrombosis_lab_rules_ignore_non_result_mentions(
+    client: TestClient,
+) -> None:
+    text = (
+        "Đã lấy cấy máu. Lấy mẫu cấy máu. "
+        "cấy máu 2 mẫu và cấy nước tiểu đã được gửi. "
+        "Tắc mạch huyết khối tĩnh mạch chủ dưới. "
+        "Siêu âm không phát hiện huyết khối tĩnh mạch sâu."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = [
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    ]
+
+    assert "cấy máu" not in lab_names
+    assert "huyết khối" not in lab_names
+
+
 def test_imaging_probability_result_keeps_full_phrase(client: TestClient) -> None:
     text = (
         "Xạ hình thông khí - tưới máu phổi cho thấy xác suất thấp thuyên tắc phổi."
