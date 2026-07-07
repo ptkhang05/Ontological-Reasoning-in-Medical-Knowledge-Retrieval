@@ -971,7 +971,27 @@ def _is_blocked_symptom_context(text: str, start: int, end: int) -> bool:
         return after.lstrip().startswith("hợp")
     if term == "đỏ":
         return after.lstrip().startswith("tươi")
-    return False
+    return term == "ho" and _is_history_of_abbreviation_context(text, start, end)
+
+
+def _is_history_of_abbreviation_context(text: str, start: int, end: int) -> bool:
+    line_start = max(text.rfind("\n", 0, start) + 1, 0)
+    prefix = text[line_start:start].strip().lower()
+    if prefix not in {"-", "•", ""}:
+        return False
+    following = text[end : min(len(text), end + 45)].lstrip().lower()
+    return following.startswith(
+        (
+            "bệnh ",
+            "đái tháo đường",
+            "rối loạn ",
+            "rung nhĩ",
+            "tăng ",
+            "suy ",
+            "ung thư",
+            "hội chứng",
+        )
+    )
 
 
 def _is_leukemia_context(text: str, start: int, end: int) -> bool:

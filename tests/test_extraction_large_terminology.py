@@ -194,3 +194,28 @@ def test_rxnorm_lab_analytes_are_not_extracted_as_medications() -> None:
             "talc",
         }
     )
+
+
+def test_ho_history_abbreviation_is_not_extracted_as_cough() -> None:
+    extractor = RuleBasedExtractor(TerminologyStore([]))
+
+    history_candidates = extractor.extract(
+        "Các bệnh lý mạn tính\n"
+        "- ho đái tháo đường\n"
+        "- ho Bệnh bạch cầu dòng tủy mãn tính\n"
+        "- ho Rối loạn cảm xúc\n"
+    )
+    history_symptoms = {
+        candidate.text.lower()
+        for candidate in history_candidates
+        if candidate.concept_type == ConceptType.SYMPTOM
+    }
+    assert "ho" not in history_symptoms
+
+    current_candidates = extractor.extract("Triệu chứng hiện tại\n- ho\n- ho nhẹ")
+    current_symptoms = [
+        candidate.text.lower()
+        for candidate in current_candidates
+        if candidate.concept_type == ConceptType.SYMPTOM
+    ]
+    assert "ho" in current_symptoms
