@@ -482,7 +482,10 @@ TERMINOLOGY_DISEASE_BLOCK_TERMS = (
 )
 TERMINOLOGY_MEDICATION_BLOCK_TERMS = (
     "albumin",
+    "alanine",
+    "aspartate",
     "bilirubin",
+    "caffeine",
     "calcium",
     "chloride",
     "cholesterol",
@@ -491,10 +494,12 @@ TERMINOLOGY_MEDICATION_BLOCK_TERMS = (
     "guaiac",
     "hemoglobin",
     "lactate",
+    "lipase",
     "phosphate",
     "phosphorus",
     "potassium",
     "sodium",
+    "talc",
     "triglycerides",
     "troponin",
     "urea",

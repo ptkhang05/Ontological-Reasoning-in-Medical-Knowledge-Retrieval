@@ -153,9 +153,15 @@ def test_rxnorm_lab_analytes_are_not_extracted_as_medications() -> None:
                 source_url="https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html",
             )
             for code, term in [
+                ("426", "alanine"),
+                ("42543", "aspartate"),
+                ("1886", "caffeine"),
                 ("214275", "creatinine"),
                 ("4850", "glucose"),
                 ("2364", "guaiac"),
+                ("6406", "lipase"),
+                ("10323", "talc"),
+                ("7617", "octreotide"),
                 ("202433", "Tylenol"),
             ]
         ]
@@ -164,7 +170,10 @@ def test_rxnorm_lab_analytes_are_not_extracted_as_medications() -> None:
 
     candidates = extractor.extract(
         "Kết quả xét nghiệm: glucose 537, cr (creatinine) 1.2. "
-        "Phân dương tính guaiac. Dùng Tylenol khi đau."
+        "AST (aspartate aminotransferase) là 319, ALT (alanine aminotransferase) là 690, "
+        "lipase là tăng. Phân dương tính guaiac. "
+        "Uống cà phê có caffeine. Không thực hiện gây dính màng phổi bằng talc. "
+        "Dùng octreotide và Tylenol khi đau."
     )
 
     medication_texts = {
@@ -172,5 +181,16 @@ def test_rxnorm_lab_analytes_are_not_extracted_as_medications() -> None:
         for candidate in candidates
         if candidate.concept_type == ConceptType.MEDICATION
     }
-    assert "tylenol" in medication_texts
-    assert medication_texts.isdisjoint({"creatinine", "glucose", "guaiac"})
+    assert {"octreotide", "tylenol"}.issubset(medication_texts)
+    assert medication_texts.isdisjoint(
+        {
+            "alanine",
+            "aspartate",
+            "caffeine",
+            "creatinine",
+            "glucose",
+            "guaiac",
+            "lipase",
+            "talc",
+        }
+    )
