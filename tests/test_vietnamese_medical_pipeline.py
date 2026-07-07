@@ -844,6 +844,80 @@ def test_lab_values_keep_textual_increase_high_as_single_value(
     assert "cao" not in lab_values
 
 
+def test_lab_values_ignore_non_result_trend_words_in_narrative(
+    client: TestClient,
+) -> None:
+    text = (
+        "Chụp cắt lớp vi tính kể từ lần khám cuối cùng cho thấy góc tăng lên. "
+        "ERCP không làm giảm đáng kể lượng dịch rò. "
+        "Kết quả xét nghiệm: creatinine tăng cao."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_values = {
+        entity["text"]
+        for entity in response.json()
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+    }
+
+    assert "tăng cao" in lab_values
+    assert lab_values.isdisjoint({"tăng", "giảm"})
+
+
+def test_lab_names_ignore_serous_fluid_and_laparoscopic_surgery_contexts(
+    client: TestClient,
+) -> None:
+    text = (
+        "Khám thấy dịch rỉ huyết thanh từ vết mổ. "
+        "Tiền sử phẫu thuật nội soi cắt bỏ tuyến tiền liệt. "
+        "Đề nghị cắt túi mật nội soi. "
+        "Kết quả xét nghiệm huyết thanh âm tính."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    lab_names = [
+        entity for entity in response.json() if entity["type"] == "TÊN_XÉT_NGHIỆM"
+    ]
+    lab_spans = {
+        (entity["text"].lower(), entity["position"][0]) for entity in lab_names
+    }
+    serous_start = text.index("huyết thanh")
+    serology_start = text.rindex("huyết thanh")
+
+    assert ("huyết thanh", serous_start) not in lab_spans
+    assert ("huyết thanh", serology_start) in lab_spans
+    assert not any(entity["text"].lower() == "nội soi" for entity in lab_names)
+
+
+def test_guaiac_lab_accepts_positive_value_before_or_after_name(
+    client: TestClient,
+) -> None:
+    text = "Phân dương tính guaiac. Phân có guaiac dương tính."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    guaiac_names = [
+        entity
+        for entity in entities
+        if entity["type"] == "TÊN_XÉT_NGHIỆM" and entity["text"].lower() == "guaiac"
+    ]
+    positive_values = [
+        entity
+        for entity in entities
+        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+        and entity["text"].lower() == "dương tính"
+    ]
+
+    assert len(guaiac_names) == 2
+    assert len(positive_values) == 2
+
+
 def test_history_section_marks_conditions_historical(client: TestClient) -> None:
     text = (
         "1. Tiền sử bệnh nội khoa\n"

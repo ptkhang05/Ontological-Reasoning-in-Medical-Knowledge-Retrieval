@@ -280,6 +280,7 @@ LAB_NAMES = (
     "ua (urinalysis - tổng phân tích nước tiểu)",
     "ua",
     "urinalysis",
+    "guaiac",
     "huyết thanh",
     "xét nghiệm tế bào học",
     "tế bào học",
@@ -713,6 +714,10 @@ class RuleBasedExtractor:
         for lab_name in LAB_NAMES:
             pattern = re.compile(rf"(?<!\w){re.escape(lab_name)}(?!\w)", re.I)
             for match in pattern.finditer(text):
+                if _is_blocked_lab_context(
+                    lab_name, text, match.start(), match.end()
+                ):
+                    continue
                 if lab_name == "bạch cầu" and _is_leukemia_context(
                     text, match.start(), match.end()
                 ):
@@ -972,6 +977,18 @@ def _is_blocked_symptom_context(text: str, start: int, end: int) -> bool:
     if term == "đỏ":
         return after.lstrip().startswith("tươi")
     return term == "ho" and _is_history_of_abbreviation_context(text, start, end)
+
+
+def _is_blocked_lab_context(lab_name: str, text: str, start: int, end: int) -> bool:
+    term = lab_name.lower()
+    before = text[max(0, start - 45) : start].lower().rstrip()
+    if term == "huyết thanh":
+        return re.search(r"\bdịch(?:\s+rỉ)?$", before) is not None
+    if term == "nội soi":
+        if re.search(r"\bphẫu\s+thuật$", before):
+            return True
+        return re.search(r"\bcắt(?:\s+[\wÀ-ỹ-]+){0,6}$", before) is not None
+    return False
 
 
 def _is_history_of_abbreviation_context(text: str, start: int, end: int) -> bool:

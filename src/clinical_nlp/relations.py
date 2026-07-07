@@ -104,6 +104,9 @@ NON_LAB_COUNT_AFTER_PATTERN = re.compile(
     r"^\s*(?:viên|lần|stent|ống|mẫu|thủ\s+thuật|tuần|ngày|tháng|năm|giờ|phút)\b",
     re.I,
 )
+SHORT_TEXTUAL_TREND_VALUES = {"tăng", "giảm", "cao", "thấp"}
+NON_LAB_TEXTUAL_TREND_CONTEXT_PATTERN = re.compile(r"(?:\bgóc\s*$|\blàm\s*$)", re.I)
+PRECEDING_LAB_VALUE_PATTERN = re.compile(r"(âm\s+tính|dương\s+tính)\s*$", re.I)
 
 
 def extract_relations(text: str, concepts: list[Concept]) -> list[Relation]:
@@ -166,7 +169,7 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
     tail = text[lab.end_offset:sentence_end]
     match = _find_valid_lab_value_match(text, lab, tail)
     if match is None:
-        return []
+        return _preceding_lab_value_relations(text, lab)
     value_start, value_end = _trimmed_lab_value_span(text, lab.end_offset, match)
     if value_start >= value_end:
         return []
@@ -179,6 +182,30 @@ def _lab_value_relations(text: str, lab: Concept) -> list[Relation]:
             confidence=0.82,
             evidence_start_offset=lab.start_offset,
             evidence_end_offset=value_end,
+            value=text[value_start:value_end],
+        )
+    ]
+
+
+def _preceding_lab_value_relations(text: str, lab: Concept) -> list[Relation]:
+    if text[lab.start_offset : lab.end_offset].lower() != "guaiac":
+        return []
+    sentence_start, _ = sentence_bounds(text, lab.start_offset, lab.end_offset)
+    head = text[sentence_start : lab.start_offset]
+    match = PRECEDING_LAB_VALUE_PATTERN.search(head)
+    if match is None:
+        return []
+    value_start = sentence_start + match.start(1)
+    value_end = sentence_start + match.end(1)
+    return [
+        Relation(
+            relation_id=str(uuid.uuid4()),
+            type=RelationType.HAS_VALUE,
+            source_concept_id=lab.concept_id,
+            target_concept_id=None,
+            confidence=0.82,
+            evidence_start_offset=value_start,
+            evidence_end_offset=lab.end_offset,
             value=text[value_start:value_end],
         )
     ]
@@ -202,7 +229,8 @@ def _is_valid_lab_value_match(
 ) -> bool:
     value = match.group(1).strip()
     if LAB_NUMERIC_PATTERN.fullmatch(value) is None:
-        return True
+        value_start, _ = _trimmed_lab_value_span(text, lab.end_offset, match)
+        return not _is_non_lab_textual_value_context(text, lab, value, value_start)
 
     value_start, value_end = _trimmed_lab_value_span(text, lab.end_offset, match)
     between_lab_and_value = text[lab.end_offset:value_start]
@@ -213,6 +241,15 @@ def _is_valid_lab_value_match(
     if "." in value or "," in value:
         return True
     return True
+
+
+def _is_non_lab_textual_value_context(
+    text: str, lab: Concept, value: str, value_start: int
+) -> bool:
+    if value.lower() not in SHORT_TEXTUAL_TREND_VALUES:
+        return False
+    before_value = text[lab.end_offset:value_start].lower()
+    return NON_LAB_TEXTUAL_TREND_CONTEXT_PATTERN.search(before_value[-100:]) is not None
 
 
 def _trimmed_lab_value_span(
