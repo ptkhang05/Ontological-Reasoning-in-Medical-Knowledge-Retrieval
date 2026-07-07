@@ -15,6 +15,7 @@ python -m pytest
 python -m ruff check .
 python -m mypy
 python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv --workers 8 --delay-seconds 0
+python scripts/build_rxnorm.py --input C:\path\to\RxNorm_full_07062026.zip --output data/terminologies/rxnorm.generated.csv
 python -m clinical_nlp.cli.batch input/input --output output/output.zip
 ./scripts/build_submission.sh input/input output/output.zip
 ```
@@ -32,9 +33,10 @@ Use this only with a BTC-compliant self-hosted model. The adapter receives
 de-identified text, and every proposed span is validated against the source
 text before it can affect output.
 
-Terminology files can be placed under `data/terminologies`. Do not commit large
-or licensed terminology dumps. Local contest data under `input/` is ignored by
-git.
+Terminology files can be placed under `data/terminologies`. Generated files such
+as `data/terminologies/rxnorm.generated.csv` and licensed RxNorm release files
+are ignored by git. Do not commit large or licensed terminology dumps. Local
+contest data under `input/` is ignored by git.
 
 See `docs/API.md` for the request/response contract,
 `docs/TERMINOLOGY.md` for terminology loader details, and

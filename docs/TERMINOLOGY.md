@@ -29,6 +29,8 @@ Reference sources:
   https://ccs.whiteneuron.com/api/ICD10_TT06/root?lang=vi
 - CMS ICD-10-CM: https://www.cms.gov/medicare/coding-billing/icd-10-codes
 - NLM RxNorm overview: https://www.nlm.nih.gov/research/umls/rxnorm/overview.html
+- NLM RxNorm release files:
+  https://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html
 - NLM RxNorm API: https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html
 - WHO ATC classification: https://www.who.int/tools/atc-ddd-toolkit/atc-classification
 
@@ -37,6 +39,18 @@ To build a local Vietnamese ICD CSV from the public TT06 API:
 ```powershell
 python scripts/build_icd10_tt06.py --output data/terminologies/icd10_tt06.generated.csv --workers 8 --delay-seconds 0
 ```
+
+To build a local RxNorm CSV from a licensed NLM RxNorm release zip or extracted
+directory:
+
+```powershell
+python scripts/build_rxnorm.py --input C:\path\to\RxNorm_full_07062026.zip --output data/terminologies/rxnorm.generated.csv
+```
+
+`build_rxnorm.py` reads `RXNCONSO.RRF`, keeps English active `RXNORM` rows, and
+exports common clinical drug/ingredient/brand term types by default. Use
+`--tty` if you need to narrow or expand the exported RxNorm term types for a
+score experiment.
 
 Generated terminology CSV files named `*.generated.csv` are ignored by git.
 Review licensing/source requirements before committing any downloaded ontology
