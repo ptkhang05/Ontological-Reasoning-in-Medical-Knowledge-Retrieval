@@ -1,16 +1,20 @@
-[ViettelAI Race](https://competition.viettel.vn/)[Trang chủ](https://competition.viettel.vn/)[Đề bài](https://competition.viettel.vn/contests)[Bảng xếp hạng](https://competition.viettel.vn/leaderboards)[Diễn đàn](https://competition.viettel.vn/forum)[Thể lệ](https://competition.viettel.vn/rules)
-
-PT
+[Trang chủ](https://competition.viettel.vn/)
+[Đề bài](https://competition.viettel.vn/contests)
+[Bảng xếp hạng](https://competition.viettel.vn/leaderboards)
+[Diễn đàn](https://competition.viettel.vn/forum)
+[Thể lệ](https://competition.viettel.vn/rules)
 
 [Quay lại đề bài](https://competition.viettel.vn/contests/medical-2026)
 
-Vòng 1Đang mở
+Vòng 1
+Đang mở
 
 # Vòng 1 - Sơ loại
 
 02/07/2026 - 30/07/2026
 
-[Lịch sử nộp bài](https://competition.viettel.vn/contests/medical-2026/phases/019e649f-4e5d-70ed-b221-7a10f537281e/submissions)[Nộp bài](https://competition.viettel.vn/contests/medical-2026/phases/019e649f-4e5d-70ed-b221-7a10f537281e/submit)
+[Lịch sử nộp bài](https://competition.viettel.vn/contests/medical-2026/phases/019e649f-4e5d-70ed-b221-7a10f537281e/submissions)
+[Nộp bài](https://competition.viettel.vn/contests/medical-2026/phases/019e649f-4e5d-70ed-b221-7a10f537281e/submit)
 
 ## Đề bài & Quy định
 
@@ -29,16 +33,16 @@ Vòng 1Đang mở
   Chi tiết dạng json trong output sẽ được nêu ở ví dụ dưới.
 * Lưu ý:
 
-  + Trước khi vòng 1 kết thúc, BTC yêu cầu top ~15 đội gửi trước source code riêng để thực hiện dựng lại và đánh giá trên dữ liệu private test. Việc này nhằm tránh tình trạng gian lận nộp file hard code output với input được cung cấp.
-  + Source code bao gồm:
-    - tất cả các file code của nhóm (data processing, training, inference, …)
-    - data nhóm sử dụng
-    - model weights
-    - 1 file readme hướng dẫn cài đặt
-  + Nếu BTC không thể cài đặt được code của nhóm thi, nhóm thi sẽ được liên lạc riêng để hỗ trợ trong 1 khoảng thời gian nhất định. Nếu nhóm không thể cung cấp hỗ trợ kịp thời sẽ bị loại.
+  * Trước khi vòng 1 kết thúc, BTC yêu cầu top ~15 đội gửi trước source code riêng để thực hiện dựng lại và đánh giá trên dữ liệu private test. Việc này nhằm tránh tình trạng gian lận nộp file hard code output với input được cung cấp.
+  * Source code bao gồm:
+    * tất cả các file code của nhóm (data processing, training, inference, …)
+    * data nhóm sử dụng
+    * model weights
+    * 1 file readme hướng dẫn cài đặt
+  * Nếu BTC không thể cài đặt được code của nhóm thi, nhóm thi sẽ được liên lạc riêng để hỗ trợ trong 1 khoảng thời gian nhất định. Nếu nhóm không thể cung cấp hỗ trợ kịp thời sẽ bị loại.
 * VD input-output vòng 1:
 
-  + **Input:**
+  * **Input:**
 
     > *'Danh sách thuốc trước nhập viện chính xác và đầy đủ.*
     > *1. amlodipine 10 mg po daily*
@@ -52,7 +56,7 @@ Vòng 1Đang mở
     > *9. senna 8.6 mg po bid:prn điều trị táo bón*
     > *10. clonazepam 0.5 mg po qam:prn điều trị lo âu*
     > *11. clonazepam 1.5 mg po qhs điều trị lo âu mất ngủ'*
-  + **Output:**
+  * **Output:**
 
     ```
     [
@@ -217,36 +221,15 @@ Cấu hình máy được sử dụng:
 
 * Thí sinh tự chuẩn bị tài nguyên tính toán. Tuy nhiên, với những giải pháp LLM/agent chỉ cho phép thí sinh self-host model mà không được sử dụng API ngoài, model self-host có độ lớn tối đa là 9B params.
 
-Chi tiết vòng thi
+## Chi tiết vòng thi
 
-Loại bài nộpTệp ZIP
+| Hạng mục | Thông tin |
+|---|---|
+| Loại bài nộp | Tệp ZIP |
+| Hạ tầng chấm | GPU |
+| Giới hạn nộp bài | 5 lần/ngày |
+| Thời gian chờ | 600 giây |
 
-Hạ tầng chấmGPU
-
-Giới hạn nộp bài5 lần/ngày
-
-Thời gian chờ600 giây
-
-Dữ liệu công khai
+## Dữ liệu công khai
 
 Tải dữ liệu
-
-ViettelAI Race
-
-Tập đoàn Công nghiệp - Viễn thông Quân đội
-
-Lô D26, Khu đô thị mới Cầu Giấy, Phường Cầu Giấy, Hà Nội, Việt Nam
-
-Theo dõi Viettel
-
-Về cuộc thi
-
-* [Thể lệ](https://competition.viettel.vn/rules)
-* [Đề bài](https://competition.viettel.vn/contests)
-* [Bảng xếp hạng](https://competition.viettel.vn/leaderboards)
-
-Hỗ trợ
-
-* [Diễn đàn](https://competition.viettel.vn/forum)
-
-© 2026 Tập đoàn Công nghiệp - Viễn thông Quân đội. Bảo lưu mọi quyền.
