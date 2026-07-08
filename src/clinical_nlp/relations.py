@@ -121,7 +121,6 @@ PRECEDING_VALUE_LAB_NAMES = {
     "bạch cầu",
     "cấy máu",
     "chem 7",
-    "điện giải",
     "guaiac",
     "hồng cầu",
     "lymphocyte",

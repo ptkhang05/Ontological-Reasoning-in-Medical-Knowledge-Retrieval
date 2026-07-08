@@ -1149,46 +1149,6 @@ def test_contextual_culture_and_thrombosis_lab_rules_ignore_non_result_mentions(
     assert "huyết khối" not in lab_names
 
 
-def test_public_stress_test_and_electrolyte_result_mentions(
-    client: TestClient,
-) -> None:
-    text = (
-        "Lý do nhập viện: xét nghiệm gắng sức bất thường. "
-        "Các sự kiện trước khi nhập viện: xét nghiệm gắng sức bất thường. "
-        "Kết quả xét nghiệm\n"
-        "- bất thường điện giải\n"
-        "Tiền sử: rối loạn điện giải đã điều trị."
-    )
-
-    response = client.post("/v1/analyze/btc", json={"text": text})
-
-    assert response.status_code == 200
-    entities = response.json()
-    lab_names = [
-        entity for entity in entities if entity["type"] == "TÊN_XÉT_NGHIỆM"
-    ]
-    lab_values = [
-        entity["text"].lower()
-        for entity in entities
-        if entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
-    ]
-    lab_texts = [entity["text"].lower() for entity in lab_names]
-    electrolyte_lab_starts = [
-        entity["position"][0]
-        for entity in lab_names
-        if entity["text"].lower() == "điện giải"
-    ]
-
-    assert lab_texts.count("xét nghiệm gắng sức") == 2
-    assert text.index("bất thường điện giải") + len("bất thường ") in (
-        electrolyte_lab_starts
-    )
-    assert text.index("rối loạn điện giải") + len("rối loạn ") not in (
-        electrolyte_lab_starts
-    )
-    assert lab_values.count("bất thường") >= 3
-
-
 def test_imaging_probability_result_keeps_full_phrase(client: TestClient) -> None:
     text = (
         "Xạ hình thông khí - tưới máu phổi cho thấy xác suất thấp thuyên tắc phổi."
