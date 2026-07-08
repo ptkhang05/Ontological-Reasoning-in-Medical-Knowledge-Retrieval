@@ -375,6 +375,7 @@ LAB_NAMES = (
     "cholangiogram",
     "xạ hình thông khí - tưới máu phổi",
     "xạ hình tưới máu cơ tim",
+    "xét nghiệm gắng sức",
     "nghiệm pháp gắng sức",
 )
 
@@ -824,6 +825,10 @@ class RuleBasedExtractor:
             re.compile(
                 r"(?i)(đường\s+huyết\s+lúc\s+đói)"
                 r"(?=đường\s+huyết\s+(?:thấp|cao|bình\s+thường))"
+            ),
+            re.compile(
+                r"(?im)(?:âm\s+tính|dương\s+tính|bất\s+thường)\s+"
+                r"(điện\s+giải)\b"
             ),
             re.compile(
                 r"(?im)(?:^|[\n])\s*(?:[-*]\s*)?"
