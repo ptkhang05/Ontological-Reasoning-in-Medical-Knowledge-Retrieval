@@ -316,6 +316,22 @@ def test_btc_candidates_use_admin_vietnamese_icd10_for_common_cm_specific_codes(
     assert diagnosis_by_text["gãy xương sườn trái"]["candidates"] == ["S22.4"]
 
 
+def test_displaced_femoral_neck_fracture_keeps_full_span(
+    client: TestClient,
+) -> None:
+    text = "Lý do nhập viện: ngã với gãy cổ xương đùi di lệch."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    assert diagnosis_by_text["gãy cổ xương đùi di lệch"]["candidates"] == ["S72.0"]
+
+
 def test_btc_icd_candidates_follow_admin_vietnamese_icd10_judgement(
     client: TestClient,
 ) -> None:
@@ -1957,6 +1973,34 @@ def test_llm_mined_symptom_phrases_are_rule_based(
         "đau buốt khi đi tiểu",
         "vàng da không đau",
         "biến đổi ý thức",
+    } <= symptoms
+
+
+def test_admission_reason_symptom_phrases_are_rule_based(
+    client: TestClient,
+) -> None:
+    text = (
+        "Lý do nhập viện: cơn ngất xỉu, tụt huyết áp, "
+        "đau bụng vùng hạ sườn phải ngày càng tăng, khó thở và tiếng rít. "
+        "Triệu chứng hiện tại: cảm giác như bị xịt nước và "
+        "cảm giác thắt chặt ngực."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptoms = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+    assert {
+        "cơn ngất xỉu",
+        "tụt huyết áp",
+        "đau bụng vùng hạ sườn phải ngày càng tăng",
+        "tiếng rít",
+        "cảm giác như bị xịt nước",
+        "cảm giác thắt chặt ngực",
     } <= symptoms
 
 

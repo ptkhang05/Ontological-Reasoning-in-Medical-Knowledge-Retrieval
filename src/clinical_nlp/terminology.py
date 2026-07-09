@@ -14,6 +14,7 @@ CMS_ICD10_URL = "https://www.cms.gov/medicare/coding-billing/icd-10-codes"
 RXNORM_URL = "https://www.nlm.nih.gov/research/umls/rxnorm/overview.html"
 RXNORM_API_URL = "https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html"
 WHO_ATC_URL = "https://www.who.int/tools/atc-ddd-toolkit/atc-classification"
+VIETNAM_ICD10_TT06_URL = "https://icd.kcb.vn/icd-10-tt06/icd10-tt06"
 
 
 @dataclass(frozen=True)
@@ -1010,6 +1011,15 @@ def demo_entries() -> list[TerminologyEntry]:
             "S22.42XA",
             "Multiple fractures of ribs, left side, initial encounter for closed fracture",
             ("gãy xương sườn trái",),
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.DISEASE,
+            code_system="ICD-10-TT06",
+            code="S72.0",
+            preferred_term="Gãy cổ xương đùi",
+            synonyms=("gãy cổ xương đùi di lệch",),
+            release_id="TT06-2026",
+            source_url=VIETNAM_ICD10_TT06_URL,
         ),
         TerminologyEntry(
             concept_type=ConceptType.MEDICATION,
