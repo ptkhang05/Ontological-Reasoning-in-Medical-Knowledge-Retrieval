@@ -1935,6 +1935,31 @@ def test_low_recall_public_records_get_obstetric_and_urology_symptoms(
     ]
 
 
+def test_llm_mined_symptom_phrases_are_rule_based(
+    client: TestClient,
+) -> None:
+    text = (
+        "Triệu chứng hiện tại: hạ huyết áp, vã mồ hôi, "
+        "Đau buốt khi đi tiểu, vàng da không đau và biến đổi ý thức."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptoms = {
+        entity["text"].lower()
+        for entity in response.json()
+        if entity["type"] == "TRIỆU_CHỨNG"
+    }
+    assert {
+        "hạ huyết áp",
+        "vã mồ hôi",
+        "đau buốt khi đi tiểu",
+        "vàng da không đau",
+        "biến đổi ý thức",
+    } <= symptoms
+
+
 def test_lab_names_do_not_split_leukemia_diagnoses(client: TestClient) -> None:
     text = "Tiền sử bệnh nội khoa: Bệnh bạch cầu dòng tủy mãn tính."
 
