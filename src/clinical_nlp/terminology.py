@@ -188,10 +188,21 @@ def demo_entries() -> list[TerminologyEntry]:
                 "đái tháo đường",
                 "đái tháo đường típ 2",
                 "đái tháo đường type 2",
+                "đái tháo đường type ii",
                 "tiểu đường",
             ),
             release_id="demo-seed-see-cms",
             source_url=CMS_ICD10_URL,
+        ),
+        _icd10_entry(
+            "E10.9",
+            "Type 1 diabetes mellitus without complications",
+            (
+                "đái tháo đường típ 1",
+                "đái tháo đường type 1",
+                "đái tháo đường type i",
+                "tiểu đường loại 1",
+            ),
         ),
         _icd10_entry(
             "I48.91",
