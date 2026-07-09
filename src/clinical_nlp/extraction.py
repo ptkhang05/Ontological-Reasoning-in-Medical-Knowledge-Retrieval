@@ -640,10 +640,6 @@ class RuleBasedExtractor:
                     text, match.start(), match.end()
                 ):
                     continue
-                if concept_type == ConceptType.DISEASE and _is_blocked_disease_context(
-                    text, match.start(), match.end()
-                ):
-                    continue
                 candidates.append(
                     CandidateConcept(
                         text=text[match.start() : match.end()],
@@ -669,10 +665,6 @@ class RuleBasedExtractor:
         candidates: list[CandidateConcept] = []
         for match in pattern.finditer(text):
             if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
-                text, match.start(), match.end()
-            ):
-                continue
-            if concept_type == ConceptType.DISEASE and _is_blocked_disease_context(
                 text, match.start(), match.end()
             ):
                 continue
@@ -730,10 +722,6 @@ class RuleBasedExtractor:
                         best_score = score
                         best_term = term
                 if best_term is None or best_score < 96.0:
-                    continue
-                if concept_type == ConceptType.DISEASE and _is_blocked_disease_context(
-                    text, start, end
-                ):
                     continue
                 seen.add((start, end))
                 candidates.append(
@@ -1057,14 +1045,6 @@ def _is_blocked_symptom_context(text: str, start: int, end: int) -> bool:
     if term == "đỏ":
         return after.lstrip().startswith("tươi")
     return term == "ho" and _is_history_of_abbreviation_context(text, start, end)
-
-
-def _is_blocked_disease_context(text: str, start: int, end: int) -> bool:
-    term = text[start:end].lower()
-    if term != "đái tháo đường":
-        return False
-    before = fold_term(text[max(0, start - 30) : start])
-    return re.search(r"(?:tieu duong loai (?:1|2|i|ii))$", before) is not None
 
 
 def _is_blocked_lab_context(lab_name: str, text: str, start: int, end: int) -> bool:

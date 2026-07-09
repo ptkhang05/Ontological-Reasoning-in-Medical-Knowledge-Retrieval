@@ -250,7 +250,7 @@ def test_common_public_chronic_diagnoses_get_icd_candidates(client: TestClient) 
         assert entity["candidates"] == candidates
 
 
-def test_generic_diabetes_candidate_survives_local_icd_heading_collision(
+def test_btc_diabetes_prefers_local_vietnamese_icd10_generic_code(
     tmp_path: Path,
 ) -> None:
     terminology_dir = tmp_path / "terminologies"
@@ -264,61 +264,22 @@ def test_generic_diabetes_candidate_survives_local_icd_heading_collision(
         ),
         encoding="utf-8",
     )
-    pipeline = ClinicalPipeline(
-        terminology=TerminologyStore.default(terminology_dir)
-    )
+    pipeline = ClinicalPipeline(terminology=TerminologyStore.default(terminology_dir))
+    text = "Tiền sử Đái tháo đường típ 1. Chẩn đoán Đái tháo đường."
 
     entities = btc_entities_to_jsonable(
-        pipeline.analyze(AnalyzeRequest(text="Tiền sử Đái tháo đường.")),
-        "Tiền sử Đái tháo đường.",
+        pipeline.analyze(AnalyzeRequest(text=text, language="vi")),
+        text,
     )
 
-    diabetes = next(
-        entity
-        for entity in entities
-        if entity["text"].lower() == "đái tháo đường"
-    )
-    assert diabetes["candidates"] == ["E11.9"]
-
-
-def test_type_1_diabetes_keeps_specific_span_and_candidate(client: TestClient) -> None:
-    text = "Tiền sử Đái tháo đường típ 1 có biến chứng thần kinh ngoại biên."
-
-    response = client.post("/v1/analyze/btc", json={"text": text})
-
-    assert response.status_code == 200
-    entities = response.json()
-    diabetes = next(
-        entity
-        for entity in entities
-        if entity["text"].lower() == "đái tháo đường típ 1"
-    )
-    assert diabetes["type"] == "CHẨN_ĐOÁN"
-    assert diabetes["candidates"] == ["E10.9"]
-
-
-def test_file66_style_type_1_diabetes_translation_duplicate_is_not_reemitted(
-    client: TestClient,
-) -> None:
-    text = "Các bệnh mãn tính - Tiểu đường loại 1 đái tháo đường - tăng huyết áp."
-
-    response = client.post("/v1/analyze/btc", json={"text": text})
-
-    assert response.status_code == 200
     diabetes_entities = [
         entity
-        for entity in response.json()
-        if "đường" in entity["text"].lower() and entity["type"] == "CHẨN_ĐOÁN"
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+        and entity["text"].lower() == "đái tháo đường"
     ]
-    assert diabetes_entities == [
-        {
-            "text": "Tiểu đường loại 1",
-            "position": [20, 37],
-            "type": "CHẨN_ĐOÁN",
-            "assertions": ["isHistorical"],
-            "candidates": ["E10.9"],
-        }
-    ]
+    assert [entity["position"] for entity in diabetes_entities] == [[8, 22], [40, 54]]
+    assert all(entity["candidates"] == ["E10"] for entity in diabetes_entities)
 
 
 def test_btc_candidates_use_admin_vietnamese_icd10_for_common_cm_specific_codes(

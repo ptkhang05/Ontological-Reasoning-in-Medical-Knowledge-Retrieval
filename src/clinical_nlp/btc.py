@@ -194,8 +194,6 @@ BTC_CANDIDATE_OVERRIDES = {
     "40 meq po k": ["2728723"],
     "40meq iv k": ["2728723"],
     "40 meq iv k": ["2728723"],
-    "đái tháo đường": ["E11.9"],
-    "bệnh đái tháo đường": ["E11.9"],
     "bệnh trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
     "trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
 }
