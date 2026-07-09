@@ -19,6 +19,8 @@ Return only a JSON array. Each item must have:
 - position: [start, end] zero-based character offsets, end exclusive
 - type: one of TRIỆU_CHỨNG, TÊN_XÉT_NGHIỆM, KẾT_QUẢ_XÉT_NGHIỆM, CHẨN_ĐOÁN, THUỐC
 
+Use short exact clinical spans only. Never output section headings such as
+"Tiền sử bệnh", "Bệnh sử hiện tại", "Triệu chứng hiện tại", or "Đánh giá".
 Do not include patient identifiers. Do not add explanations. Do not invent spans."""
 
 

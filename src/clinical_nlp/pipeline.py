@@ -21,7 +21,7 @@ from clinical_nlp.schemas import (
     ProcessingMetadata,
     WarningMessage,
 )
-from clinical_nlp.terminology import TerminologyStore
+from clinical_nlp.terminology import TerminologyStore, fold_term
 
 EXTERNAL_TYPE_MAP = {
     "SYMPTOM": ConceptType.SYMPTOM,
@@ -43,6 +43,85 @@ EXTERNAL_TYPE_MAP = {
     "THUỐC": ConceptType.MEDICATION,
     "THUOC": ConceptType.MEDICATION,
 }
+
+EXTERNAL_HEADING_FOLDS = {
+    "benh su hien tai",
+    "cac benh ly man tinh",
+    "cac phat hien chan doan khac",
+    "cac su kien truoc khi nhap vien",
+    "cac trieu chung hien tai",
+    "danh gia tai benh vien",
+    "dac diem trieu chung",
+    "dien bien benh",
+    "lich su benh hien tai",
+    "tien su benh",
+    "tien su benh hien tai",
+    "tien su benh noi khoa",
+    "tien su phau thuat thu thuat",
+    "trieu chung hien tai",
+}
+
+EXTERNAL_HEADING_PREFIX_FOLDS = (
+    "cac benh ly",
+    "cac phat hien",
+    "cac su kien",
+    "cac trieu chung",
+    "danh gia",
+    "dac diem",
+    "lich su",
+    "tien su",
+    "trieu chung hien tai",
+)
+
+EXTERNAL_NEGATED_PREFIX_FOLDS = ("khong ", "chua ")
+
+EXTERNAL_SYMPTOM_ALLOW_FOLD_SNIPPETS = (
+    "ban do",
+    "bi tieu",
+    "buon non",
+    "cam giac",
+    "chay mau",
+    "chong mat",
+    "dai tien",
+    "dau",
+    "di cam",
+    "do",
+    "ha huyet ap",
+    "ho",
+    "khan",
+    "kho tho",
+    "loet",
+    "met",
+    "ngat",
+    "non",
+    "phu",
+    "sot",
+    "sung",
+    "te",
+    "that chat nguc",
+    "tieu tien",
+    "tuc nguc",
+    "va mo hoi",
+    "yeu",
+)
+
+EXTERNAL_SYMPTOM_BLOCK_FOLD_SNIPPETS = (
+    "benh vien",
+    "ca phe",
+    "chan doan",
+    "chup ",
+    "dieu tri",
+    "hom qua",
+    "khong tuan thu",
+    "mat viec",
+    "nhap vien",
+    "noi soi",
+    "phau thuat",
+    "su dung",
+    "thu thuat",
+    "thuoc",
+    "xet nghiem",
+)
 
 
 class ExternalExtractor(Protocol):
@@ -103,15 +182,15 @@ class ClinicalPipeline:
                     )
                 else:
                     external_used = True
-                    candidates = remove_overlaps(
-                        [
-                            *candidates,
-                            *self._external_entities_to_candidates(
-                                deidentified.processed_text,
-                                external_entities,
-                            ),
-                        ]
+                    external_candidates = self._safe_external_candidates(
+                        deidentified.processed_text,
+                        candidates,
+                        self._external_entities_to_candidates(
+                            deidentified.processed_text,
+                            external_entities,
+                        ),
                     )
+                    candidates = [*candidates, *remove_overlaps(external_candidates)]
 
         concepts = [
             self._candidate_to_concept(request.text, candidate) for candidate in candidates
@@ -195,6 +274,41 @@ class ClinicalPipeline:
                 candidates.append(candidate)
         return candidates
 
+    def _safe_external_candidates(
+        self,
+        processed_text: str,
+        existing: list[CandidateConcept],
+        external: list[CandidateConcept],
+    ) -> list[CandidateConcept]:
+        safe: list[CandidateConcept] = []
+        for candidate in external:
+            if not self._is_safe_external_candidate(processed_text, candidate):
+                continue
+            if _overlaps_any(candidate, [*existing, *safe]):
+                continue
+            safe.append(candidate)
+        return safe
+
+    def _is_safe_external_candidate(
+        self, processed_text: str, candidate: CandidateConcept
+    ) -> bool:
+        del processed_text
+        text = candidate.text.strip()
+        if not text or "\n" in text:
+            return False
+        folded = fold_term(text)
+        if _is_external_heading_fold(folded):
+            return False
+
+        token_count = len(folded.split())
+        if candidate.concept_type == ConceptType.LAB_RESULT:
+            return False
+        if candidate.concept_type == ConceptType.SYMPTOM:
+            return _is_safe_external_symptom(folded, token_count, text)
+        if candidate.concept_type in {ConceptType.DISEASE, ConceptType.MEDICATION}:
+            return self._terminology.lookup(text, candidate.concept_type) is not None
+        return False
+
     def _external_entity_to_candidate(
         self, processed_text: str, entity: ExternalEntity
     ) -> CandidateConcept | None:
@@ -228,6 +342,42 @@ class ClinicalPipeline:
         if external_used and self._external_extractor is not None:
             versions["external_extractor"] = type(self._external_extractor).__name__
         return versions
+
+
+def _overlaps_any(candidate: CandidateConcept, existing: list[CandidateConcept]) -> bool:
+    return any(
+        _spans_overlap(
+            candidate.start_offset,
+            candidate.end_offset,
+            other.start_offset,
+            other.end_offset,
+        )
+        for other in existing
+    )
+
+
+def _spans_overlap(start: int, end: int, other_start: int, other_end: int) -> bool:
+    return start < other_end and other_start < end
+
+
+def _is_external_heading_fold(folded: str) -> bool:
+    if folded in EXTERNAL_HEADING_FOLDS:
+        return True
+    return any(folded.startswith(prefix) for prefix in EXTERNAL_HEADING_PREFIX_FOLDS)
+
+
+def _is_safe_external_symptom(folded: str, token_count: int, text: str) -> bool:
+    if token_count < 2 or token_count > 8 or len(text) > 64:
+        return False
+    if ":" in text or ";" in text or "%" in text:
+        return False
+    if folded.startswith(EXTERNAL_NEGATED_PREFIX_FOLDS):
+        return False
+    if "benh " in folded or folded.startswith("benh"):
+        return False
+    if any(snippet in folded for snippet in EXTERNAL_SYMPTOM_BLOCK_FOLD_SNIPPETS):
+        return False
+    return any(snippet in folded for snippet in EXTERNAL_SYMPTOM_ALLOW_FOLD_SNIPPETS)
 
 
 def _external_position(value: object) -> tuple[int, int] | None:

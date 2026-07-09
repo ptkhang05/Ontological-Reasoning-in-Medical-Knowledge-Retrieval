@@ -111,6 +111,64 @@ def test_external_inference_entities_are_merged_after_offset_validation() -> Non
     assert concept.source == "external_inference"
 
 
+def test_external_inference_cannot_replace_rule_based_spans() -> None:
+    text = "Bệnh nhân sốt và khó thở khi nhập viện."
+    extractor = StaticExternalExtractor(
+        [
+            {
+                "text": "sốt và khó thở",
+                "position": [10, 24],
+                "type": "TRIỆU_CHỨNG",
+            }
+        ]
+    )
+    pipeline = ClinicalPipeline(external_extractor=extractor)
+
+    response = pipeline.analyze(
+        AnalyzeRequest(
+            text=text,
+            options=AnalyzeOptions(allow_external_inference=True),
+        )
+    )
+
+    concepts = {(concept.text, concept.source) for concept in response.concepts}
+    assert ("sốt", "rule_symptom") in concepts
+    assert ("khó thở", "rule_symptom") in concepts
+    assert all(concept.text != "sốt và khó thở" for concept in response.concepts)
+
+
+def test_external_inference_skips_section_headings() -> None:
+    text = "Tiền sử bệnh hiện tại\nBệnh nhân mô tả dị cảm ngón út."
+    extractor = StaticExternalExtractor(
+        [
+            {
+                "text": "Tiền sử bệnh hiện tại",
+                "position": [0, 21],
+                "type": "TRIỆU_CHỨNG",
+            },
+            {
+                "text": "dị cảm ngón út",
+                "position": [39, 52],
+                "type": "TRIỆU_CHỨNG",
+            },
+        ]
+    )
+    pipeline = ClinicalPipeline(external_extractor=extractor)
+
+    response = pipeline.analyze(
+        AnalyzeRequest(
+            text=text,
+            options=AnalyzeOptions(allow_external_inference=True),
+        )
+    )
+
+    assert all(concept.text != "Tiền sử bệnh hiện tại" for concept in response.concepts)
+    assert any(
+        concept.text == "dị cảm ngón út" and concept.source == "external_inference"
+        for concept in response.concepts
+    )
+
+
 def test_external_inference_repairs_position_by_exact_text_match() -> None:
     text = "Bệnh nhân mô tả dị cảm ngón út khi nhập viện."
     extractor = StaticExternalExtractor(
