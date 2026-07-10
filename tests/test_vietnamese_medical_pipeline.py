@@ -1279,6 +1279,22 @@ def test_history_section_marks_conditions_historical(client: TestClient) -> None
     assert entity_by_text["đau ngực"]["assertions"] == []
 
 
+def test_glued_current_history_heading_does_not_mark_symptom_historical(
+    client: TestClient,
+) -> None:
+    text = "2. Tiền sử bệnh hiện tạiBệnh nhân nhập viện vì đau bụng."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    abdominal_pain = next(
+        entity
+        for entity in response.json()
+        if entity["text"].lower() == "đau bụng"
+    )
+    assert abdominal_pain["assertions"] == []
+
+
 def test_family_observer_sentences_do_not_mark_patient_symptoms_as_family(
     client: TestClient,
 ) -> None:
@@ -2376,7 +2392,7 @@ def test_public_diffuse_large_b_cell_lymphoma_variant_gets_tt06_candidate(
     ] == ["C83.3"]
 
 
-def test_ocr_uppercase_joined_after_diagnosis_keeps_term_boundary(
+def test_ocr_uppercase_joined_suffix_does_not_create_diagnosis(
     client: TestClient,
 ) -> None:
     text = (
@@ -2387,17 +2403,16 @@ def test_ocr_uppercase_joined_after_diagnosis_keeps_term_boundary(
     response = client.post("/v1/analyze/btc", json={"text": text})
 
     assert response.status_code == 200
-    diagnosis_by_text = {
-        entity["text"].lower(): entity
+    diagnosis_texts = {
+        entity["text"].lower()
         for entity in response.json()
         if entity["type"] == "CHẨN_ĐOÁN"
     }
 
-    assert diagnosis_by_text["u ác của tuyến tiền liệt"]["candidates"] == ["C61"]
-    assert "u ác của tuyến tiền liệtanh" not in diagnosis_by_text
+    assert "u ác của tuyến tiền liệt" not in diagnosis_texts
 
 
-def test_pelvic_organ_prolapse_short_mention_gets_candidate(
+def test_pelvic_organ_prolapse_short_mention_stays_symptom(
     client: TestClient,
 ) -> None:
     text = "Lý do nhập viện: tiểu tiện không tự chủ và sa âm đạo."
@@ -2405,16 +2420,16 @@ def test_pelvic_organ_prolapse_short_mention_gets_candidate(
     response = client.post("/v1/analyze/btc", json={"text": text})
 
     assert response.status_code == 200
-    diagnosis_by_text = {
+    entity_by_text = {
         entity["text"].lower(): entity
         for entity in response.json()
-        if entity["type"] == "CHẨN_ĐOÁN"
     }
 
-    assert diagnosis_by_text["sa âm đạo"]["candidates"] == ["N81.4"]
+    assert entity_by_text["sa âm đạo"]["type"] == "TRIỆU_CHỨNG"
+    assert entity_by_text["sa âm đạo"]["candidates"] == []
 
 
-def test_osteolytic_imaging_findings_get_candidate(
+def test_osteolytic_imaging_findings_are_not_promoted_to_parent_disease(
     client: TestClient,
 ) -> None:
     text = (
@@ -2426,18 +2441,14 @@ def test_osteolytic_imaging_findings_get_candidate(
     response = client.post("/v1/analyze/btc", json={"text": text})
 
     assert response.status_code == 200
-    diagnosis_by_text = {
-        entity["text"].lower(): entity
+    diagnosis_texts = {
+        entity["text"].lower()
         for entity in response.json()
         if entity["type"] == "CHẨN_ĐOÁN"
     }
 
-    assert diagnosis_by_text["tổn thương tiêu xương lan tỏa"]["candidates"] == [
-        "M89.5"
-    ]
-    assert diagnosis_by_text["các tổn thương ổ tiêu xương lan tỏa"]["candidates"] == [
-        "M89.5"
-    ]
+    assert "tổn thương tiêu xương lan tỏa" not in diagnosis_texts
+    assert "các tổn thương ổ tiêu xương lan tỏa" not in diagnosis_texts
 
 
 def test_vietnamese_pronoun_anh_ay_is_not_family_assertion(

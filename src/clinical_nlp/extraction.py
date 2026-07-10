@@ -45,6 +45,7 @@ SYMPTOM_TERMS = (
     "đánh trống ngực",
     "khó thở",
     "tiểu tiện không tự chủ",
+    "sa âm đạo",
     "bàng quang căng",
     "cảm giác bí tiểu",
     "cảm giác bí tiếu",
@@ -679,10 +680,8 @@ class RuleBasedExtractor:
     ) -> list[CandidateConcept]:
         candidates: list[CandidateConcept] = []
         for term in sorted(set(terms), key=lambda value: (-len(value), value.lower())):
-            pattern = re.compile(rf"(?<!\w){re.escape(term)}", re.I)
+            pattern = re.compile(rf"(?<!\w){re.escape(term)}(?!\w)", re.I)
             for match in pattern.finditer(text):
-                if not _has_term_right_boundary(text, match.end()):
-                    continue
                 if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
                     text, match.start(), match.end()
                 ):
@@ -715,8 +714,6 @@ class RuleBasedExtractor:
             return []
         candidates: list[CandidateConcept] = []
         for match in pattern.finditer(text):
-            if not _has_term_right_boundary(text, match.end()):
-                continue
             if concept_type == ConceptType.MEDICATION and _is_blocked_medication_context(
                 text, match.start(), match.end()
             ):
@@ -1164,14 +1161,7 @@ def _compile_term_pattern(terms: list[str]) -> re.Pattern[str] | None:
     if not unique_terms:
         return None
     alternates = "|".join(re.escape(term) for term in unique_terms)
-    return re.compile(rf"(?<!\w)(?:{alternates})", re.I)
-
-
-def _has_term_right_boundary(text: str, end: int) -> bool:
-    if end >= len(text):
-        return True
-    next_character = text[end]
-    return not (next_character.isalnum() or next_character == "_") or next_character.isupper()
+    return re.compile(rf"(?<!\w)(?:{alternates})(?!\w)", re.I)
 
 
 def _extractable_disease_terminology_terms(terms: list[str]) -> list[str]:

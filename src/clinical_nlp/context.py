@@ -71,6 +71,11 @@ HISTORY_CUES = (
     "mãn tính",
     "đã điều trị",
 )
+CURRENT_HISTORY_SECTION_CUES = (
+    "tiền sử bệnh hiện tại",
+    "tiền sử bệnh bệnh hiện tại",
+    "lịch sử bệnh hiện tại",
+)
 HYPOTHETICAL_CUES = (
     "if",
     "planned",
@@ -97,7 +102,10 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
     subject = Subject.FAMILY if has_any_cue(sentence, FAMILY_CUES) else Subject.PATIENT
 
     temporality = Temporality.CURRENT
-    if has_any_cue(sentence, HISTORY_CUES):
+    history_context = sentence
+    for cue in CURRENT_HISTORY_SECTION_CUES:
+        history_context = history_context.replace(cue, "")
+    if has_any_cue(history_context, HISTORY_CUES):
         temporality = Temporality.HISTORICAL
     elif has_any_cue(sentence, HYPOTHETICAL_CUES):
         temporality = Temporality.HYPOTHETICAL

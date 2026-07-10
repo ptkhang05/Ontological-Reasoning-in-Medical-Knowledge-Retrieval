@@ -764,22 +764,6 @@ def demo_entries() -> list[TerminologyEntry]:
             release_id="TT06-2026",
             source_url=VIETNAM_ICD10_TT06_URL,
         ),
-        TerminologyEntry(
-            concept_type=ConceptType.DISEASE,
-            code_system="ICD-10-TT06",
-            code="M89.5",
-            preferred_term="Bệnh tiêu xương",
-            synonyms=(
-                "tổn thương tiêu xương lan tỏa",
-                "tổn thương tiêu xương lan toả",
-                "tổn thương ổ tiêu xương lan tỏa",
-                "tổn thương ổ tiêu xương lan toả",
-                "các tổn thương ổ tiêu xương lan tỏa",
-                "các tổn thương ổ tiêu xương lan toả",
-            ),
-            release_id="TT06-2026",
-            source_url=VIETNAM_ICD10_TT06_URL,
-        ),
         _icd10_entry(
             "K83.8",
             "Other specified diseases of biliary tract",
