@@ -1312,6 +1312,33 @@ def test_family_observer_sentences_do_not_mark_patient_symptoms_as_family(
     assert "isFamily" in entity_by_text["tăng huyết áp"]["assertions"]
 
 
+def test_spouse_subject_is_family_but_spouse_observer_is_not(
+    client: TestClient,
+) -> None:
+    text = (
+        "Vợ có tăng huyết áp và điều trị bằng azithromycin. "
+        "Ảo giác được vợ nhận thấy."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    hypertension = next(
+        entity for entity in entities if entity["text"].lower() == "tăng huyết áp"
+    )
+    azithromycin = next(
+        entity for entity in entities if entity["text"].lower() == "azithromycin"
+    )
+    hallucination = next(
+        entity for entity in entities if entity["text"].lower() == "ảo giác"
+    )
+
+    assert "isFamily" in hypertension["assertions"]
+    assert "isFamily" in azithromycin["assertions"]
+    assert "isFamily" not in hallucination["assertions"]
+
+
 def test_common_public_medications_get_rxnorm_candidates(client: TestClient) -> None:
     text = (
         "Đang dùng Tylenol, vancomycin, omeprazole, heparin, Suboxone, "
@@ -2218,6 +2245,56 @@ def test_negation_does_not_cross_into_imaging_result(client: TestClient) -> None
         if entity["text"].lower() == "khối máu tụ dưới màng cứng"
     )
     assert "isNegated" not in diagnosis["assertions"]
+
+
+def test_negation_stops_at_cause_and_new_clause_connectors(
+    client: TestClient,
+) -> None:
+    text = (
+        "Không thể tự đứng dậy do yếu sức chân phải. "
+        "Không thể chịu lực ở chân phải, liên tục khuỵu chân. "
+        "Thuốc kê đơn không dùng đều đặn, bắt đầu dùng suboxone. "
+        "Không có sốt, ớn lạnh, nôn. "
+        "Suy tim không do thiếu máu cơ tim."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    entity_by_text = {entity["text"].lower(): entity for entity in entities}
+
+    assert entity_by_text["yếu sức"]["assertions"] == []
+    assert entity_by_text["khuỵu chân"]["assertions"] == []
+    assert entity_by_text["suboxone"]["assertions"] == []
+    assert entity_by_text["sốt"]["assertions"] == ["isNegated"]
+    assert entity_by_text["ớn lạnh"]["assertions"] == ["isNegated"]
+    assert entity_by_text["nôn"]["assertions"] == ["isNegated"]
+    assert entity_by_text["thiếu máu cơ tim"]["assertions"] == ["isNegated"]
+
+
+def test_negation_does_not_leak_from_contrast_or_non_denial_phrases(
+    client: TestClient,
+) -> None:
+    text = (
+        "Không còn sốt nhưng nghẹt ngực vẫn kéo dài. "
+        "Không thể giữ được thức ăn, chẩn đoán viêm dạ dày ruột do virus. "
+        "Không nhớ bị đánh trống ngực, chóng mặt. "
+        "Dùng nitroglycerin nhưng không giảm đau, đau ngực đã hết."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    entity_by_text = {entity["text"].lower(): entity for entity in entities}
+
+    assert entity_by_text["sốt"]["assertions"] == ["isNegated"]
+    assert entity_by_text["nghẹt ngực"]["assertions"] == []
+    assert entity_by_text["viêm dạ dày ruột do virus"]["assertions"] == []
+    assert entity_by_text["đánh trống ngực"]["assertions"] == []
+    assert entity_by_text["chóng mặt"]["assertions"] == []
+    assert entity_by_text["đau ngực"]["assertions"] == []
 
 
 def test_low_coded_public_diagnoses_get_verified_candidates(

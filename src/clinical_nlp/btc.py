@@ -143,6 +143,12 @@ FAMILY_OBSERVER_CUES = (
     "gia đình lo ngại",
     "gia đình yêu cầu",
     "gia đình cho biết",
+    "vợ nhận thấy",
+    "vợ cho biết",
+    "chồng nhận thấy",
+    "chồng cho biết",
+    "con trai phát hiện",
+    "con gái phát hiện",
 )
 BTC_CANDIDATE_OVERRIDES = {
     "aspirin 81mg": ["243670"],

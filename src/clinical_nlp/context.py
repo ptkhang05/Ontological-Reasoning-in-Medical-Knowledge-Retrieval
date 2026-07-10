@@ -28,11 +28,14 @@ IGNORED_VI_NEGATION_PREFIXES = (
     "dung nạp",
     "liên quan",
     "cải thiện",
+    "giảm",
+    "nhớ",
     "ngon miệng",
 )
 NEGATION_SCOPE_BOUNDARY_PATTERN = re.compile(
     r"[\n.;]|(?:\bkết\s+quả\b|\bcận\s+lâm\s+sàng\b|\bhình\s+ảnh\b|"
-    r"\bchẩn\s+đoán\s+hình\s+ảnh\b)",
+    r"\bchẩn\s+đoán\b|\bnhưng\b|"
+    r",\s*(?:bắt\s+đầu|liên\s+tục|sau\s+đó|đồng\s+thời|rồi)\b)",
     re.I,
 )
 POSSIBLE_CUES = (
@@ -49,6 +52,10 @@ FAMILY_CUES = (
     "father",
     "sister",
     "brother",
+    "wife",
+    "husband",
+    "son",
+    "daughter",
     "family history",
     "parent",
     "mẹ",
@@ -58,6 +65,10 @@ FAMILY_CUES = (
     "anh trai",
     "em gái",
     "em trai",
+    "vợ",
+    "chồng",
+    "con trai",
+    "con gái",
     "gia đình",
 )
 HISTORY_CUES = (
@@ -91,6 +102,7 @@ HYPOTHETICAL_CUES = (
 def infer_context(text: str, start: int, end: int) -> ContextAttributes:
     sentence_start, sentence_end = sentence_bounds(text, start, end)
     sentence = text[sentence_start:sentence_end].lower()
+    sentence_before = text[sentence_start:start].lower()
     before = text[max(sentence_start, start - 80) : start].lower()
 
     polarity = Polarity.PRESENT
@@ -99,7 +111,11 @@ def infer_context(text: str, start: int, end: int) -> ContextAttributes:
     elif has_any_cue(sentence, POSSIBLE_CUES):
         polarity = Polarity.POSSIBLE
 
-    subject = Subject.FAMILY if has_any_cue(sentence, FAMILY_CUES) else Subject.PATIENT
+    subject = (
+        Subject.FAMILY
+        if has_any_cue(sentence_before, FAMILY_CUES)
+        else Subject.PATIENT
+    )
 
     temporality = Temporality.CURRENT
     history_context = sentence
@@ -141,6 +157,10 @@ def _negation_following_in_scope(cue: str, following: str) -> bool:
     if any(
         following.startswith(prefix)
         for prefix in IGNORED_VI_NEGATION_PREFIXES
+    ):
+        return False
+    if re.search(r"\bdo\b", following, re.I) and not re.match(
+        r"^do\b", following, re.I
     ):
         return False
     if NEGATION_SCOPE_BOUNDARY_PATTERN.search(following):
