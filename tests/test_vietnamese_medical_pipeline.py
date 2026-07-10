@@ -2333,6 +2333,49 @@ def test_public_missing_diagnosis_mentions_get_candidates(
     assert diagnosis_by_text["rối loạn lưỡng cực"]["candidates"] == ["F31.9"]
 
 
+def test_public_viral_differential_diagnoses_get_tt06_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các phát hiện chẩn đoán khác: Lo ngại về Nhiễm virus Herpes simplex "
+        "(HSV) hoặc Bệnh thủy đậu/Zona (do Varicella Zoster Virus)."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["nhiễm virus herpes simplex (hsv)"][
+        "candidates"
+    ] == ["B00"]
+    assert diagnosis_by_text["bệnh thủy đậu"]["candidates"] == ["B01"]
+    assert diagnosis_by_text["zona"]["candidates"] == ["B02"]
+
+
+def test_public_diffuse_large_b_cell_lymphoma_variant_gets_tt06_candidate(
+    client: TestClient,
+) -> None:
+    text = "Các bệnh lý mãn tính: -U lympho không hodgkin tế bàoB lớn lan toả)"
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["u lympho không hodgkin tế bàob lớn lan toả"][
+        "candidates"
+    ] == ["C83.3"]
+
+
 def test_public_neuro_knee_and_blood_color_spans_are_not_fragmented(
     client: TestClient,
 ) -> None:
