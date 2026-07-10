@@ -54,9 +54,10 @@ FAMILY_CUES = (
     "mẹ",
     "cha",
     "bố",
-    "chị",
-    "anh",
-    "em",
+    "chị gái",
+    "anh trai",
+    "em gái",
+    "em trai",
     "gia đình",
 )
 HISTORY_CUES = (

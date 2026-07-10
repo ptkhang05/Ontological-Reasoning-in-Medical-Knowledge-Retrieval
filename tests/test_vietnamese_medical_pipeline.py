@@ -2376,6 +2376,91 @@ def test_public_diffuse_large_b_cell_lymphoma_variant_gets_tt06_candidate(
     ] == ["C83.3"]
 
 
+def test_ocr_uppercase_joined_after_diagnosis_keeps_term_boundary(
+    client: TestClient,
+) -> None:
+    text = (
+        "Điều trị: tạm hoãn ghép thận do chẩn đoán u ác của tuyến tiền liệtAnh ấy "
+        "có một vài người hiến tiềm năng."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["u ác của tuyến tiền liệt"]["candidates"] == ["C61"]
+    assert "u ác của tuyến tiền liệtanh" not in diagnosis_by_text
+
+
+def test_pelvic_organ_prolapse_short_mention_gets_candidate(
+    client: TestClient,
+) -> None:
+    text = "Lý do nhập viện: tiểu tiện không tự chủ và sa âm đạo."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["sa âm đạo"]["candidates"] == ["N81.4"]
+
+
+def test_osteolytic_imaging_findings_get_candidate(
+    client: TestClient,
+) -> None:
+    text = (
+        "Cận lâm sàng: phim chụp CT hình ảnh tổn thương tiêu xương lan tỏa "
+        "phù hợp với đa u tuỷ xương. "
+        "Kết quả chẩn đoán hình ảnh: các tổn thương ổ tiêu xương lan tỏa."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+
+    assert diagnosis_by_text["tổn thương tiêu xương lan tỏa"]["candidates"] == [
+        "M89.5"
+    ]
+    assert diagnosis_by_text["các tổn thương ổ tiêu xương lan tỏa"]["candidates"] == [
+        "M89.5"
+    ]
+
+
+def test_vietnamese_pronoun_anh_ay_is_not_family_assertion(
+    client: TestClient,
+) -> None:
+    text = "Anh ấy có tăng huyết áp. Anh trai có đái tháo đường."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+
+    hypertension = next(
+        entity for entity in entities if entity["text"].lower() == "tăng huyết áp"
+    )
+    diabetes = next(
+        entity for entity in entities if entity["text"].lower() == "đái tháo đường"
+    )
+
+    assert "isFamily" not in hypertension["assertions"]
+    assert "isFamily" in diabetes["assertions"]
+
+
 def test_public_neuro_knee_and_blood_color_spans_are_not_fragmented(
     client: TestClient,
 ) -> None:
