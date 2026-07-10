@@ -332,6 +332,44 @@ def test_displaced_femoral_neck_fracture_keeps_full_span(
     assert diagnosis_by_text["gãy cổ xương đùi di lệch"]["candidates"] == ["S72.0"]
 
 
+def test_tt06_alias_diagnoses_from_public_records_are_coded(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các phát hiện chẩn đoán khác: u ác của đầu tuỵ mới được chẩn đoán. "
+        "Các kết quả khác: Theo dõi đại tràng giãn."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    assert diagnosis_by_text["u ác của đầu tuỵ"]["candidates"] == ["C25.0"]
+    assert diagnosis_by_text["đại tràng giãn"]["candidates"] == ["K59.3"]
+
+
+def test_thyroid_nodule_variant_keeps_full_span(
+    client: TestClient,
+) -> None:
+    text = "Lý do nhập viện: FNA của một nốt sần tuyến giáp phải có cấu trúc vi nang."
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in response.json()
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    assert diagnosis_by_text[
+        "nốt sần tuyến giáp phải có cấu trúc vi nang"
+    ]["candidates"] == ["E04.1"]
+
+
 def test_btc_icd_candidates_follow_admin_vietnamese_icd10_judgement(
     client: TestClient,
 ) -> None:

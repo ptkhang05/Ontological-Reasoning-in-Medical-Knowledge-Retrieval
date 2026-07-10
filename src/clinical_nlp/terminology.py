@@ -693,6 +693,31 @@ def demo_entries() -> list[TerminologyEntry]:
                 "nang tuỵ",
             ),
         ),
+        TerminologyEntry(
+            concept_type=ConceptType.DISEASE,
+            code_system="ICD-10-TT06",
+            code="C25.0",
+            preferred_term="U ác tính ở đầu tuỵ",
+            synonyms=(
+                "u ác tính ở đầu tụy",
+                "u ác của đầu tuỵ",
+                "u ác của đầu tụy",
+            ),
+            release_id="TT06-2026",
+            source_url=VIETNAM_ICD10_TT06_URL,
+        ),
+        TerminologyEntry(
+            concept_type=ConceptType.DISEASE,
+            code_system="ICD-10-TT06",
+            code="K59.3",
+            preferred_term="Phình đại tràng, không phân loại mục khác",
+            synonyms=(
+                "đại tràng giãn",
+                "giãn đại tràng",
+            ),
+            release_id="TT06-2026",
+            source_url=VIETNAM_ICD10_TT06_URL,
+        ),
         _icd10_entry(
             "K83.8",
             "Other specified diseases of biliary tract",
@@ -710,7 +735,12 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "E04.1",
             "Nontoxic single thyroid nodule",
-            ("nốt tuyến giáp",),
+            (
+                "nốt tuyến giáp",
+                "nốt sần tuyến giáp",
+                "nốt sần tuyến giáp phải",
+                "nốt sần tuyến giáp phải có cấu trúc vi nang",
+            ),
         ),
         _icd10_entry(
             "D25.9",
