@@ -16,6 +16,9 @@ build/
 uvicorn.*.log
 input/
 output/
+output.zip
+output_*.zip
+submission*.zip
 submissions/
 .tmp_pdf_check/
 tmp/
