@@ -2786,3 +2786,60 @@ def test_public_physical_findings_keep_neurologic_and_dehydration_signs(
     ]
     assert symptom_by_text["xuất huyết dưới da"]["assertions"] == ["isNegated"]
     assert symptom_by_text["suy giảm tri giác"]["assertions"] == []
+
+
+def test_public_uncoded_chronic_diagnoses_get_verified_tt06_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "Các bệnh lý mạn tính:\n"
+        "- Bệnh phổi kẽ do sử dụng corticoid kéo dài\n"
+        "- tăng sản tuyến tiền liệt\n"
+        "- ngừng thở khi ngủ\n"
+        "- Giả gout\n"
+        "- ung thư biểu mô tế bào thận\n"
+        "- Rối loạn cảm xúc\n"
+        "- Viêm gan virus C và B\n"
+        "- Tăng áp động mạch phổi mức độ trung bình\n"
+        "Kết quả xét nghiệm: bilirubin tăng\n"
+        "Các phát hiện chẩn đoán khác:\n"
+        "- rung cuống nhĩ với đáp ứng thất nhanh\n"
+        "- tăng bilirubin máu\n"
+        "- Nhiều loét sạch đáy loét ở tá tràng\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    diagnosis_by_text = {
+        entity["text"].lower(): entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+    }
+    expected = {
+        "bệnh phổi kẽ": ["J84.9"],
+        "tăng sản tuyến tiền liệt": ["N40"],
+        "ngừng thở khi ngủ": ["G47.3"],
+        "giả gout": ["M11.2"],
+        "ung thư biểu mô tế bào thận": ["C64"],
+        "rối loạn cảm xúc": ["F39"],
+        "viêm gan virus c và b": ["B18.2", "B18.1"],
+        "tăng áp động mạch phổi mức độ trung bình": ["I27.2"],
+        "rung cuống nhĩ với đáp ứng thất nhanh": ["I48.9"],
+        "loét ở tá tràng": ["K26.9"],
+    }
+
+    for text_value, candidates in expected.items():
+        assert diagnosis_by_text[text_value]["candidates"] == candidates
+    assert "tăng bilirubin máu" not in diagnosis_by_text
+    assert any(
+        entity["type"] == "TÊN_XÉT_NGHIỆM"
+        and entity["text"].lower() == "bilirubin"
+        for entity in entities
+    )
+    assert any(
+        entity["type"] == "KẾT_QUẢ_XÉT_NGHIỆM"
+        and entity["text"].lower() == "tăng"
+        for entity in entities
+    )

@@ -175,6 +175,20 @@ def _icd10_entry(
     )
 
 
+def _tt06_entry(
+    code: str, preferred_term: str, synonyms: tuple[str, ...]
+) -> TerminologyEntry:
+    return TerminologyEntry(
+        concept_type=ConceptType.DISEASE,
+        code_system="ICD-10-TT06",
+        code=code,
+        preferred_term=preferred_term,
+        synonyms=synonyms,
+        release_id="TT06-2026",
+        source_url=VIETNAM_ICD10_TT06_URL,
+    )
+
+
 def demo_entries() -> list[TerminologyEntry]:
     return [
         TerminologyEntry(
@@ -194,6 +208,44 @@ def demo_entries() -> list[TerminologyEntry]:
             release_id="demo-seed-see-cms",
             source_url=CMS_ICD10_URL,
         ),
+        _tt06_entry(
+            "J84.9",
+            "Bệnh phổi mô kẽ, không xác định",
+            ("bệnh phổi kẽ",),
+        ),
+        _tt06_entry(
+            "N40",
+            "Phì đại [tăng sản] tuyến tiền liệt",
+            ("tăng sản tuyến tiền liệt",),
+        ),
+        _tt06_entry(
+            "M11.2",
+            "Bệnh vôi hoá sụn khớp khác",
+            ("giả gout",),
+        ),
+        _tt06_entry(
+            "C64",
+            "U ác tính ở thận, ngoại trừ bể thận",
+            ("ung thư biểu mô tế bào thận",),
+        ),
+        _tt06_entry(
+            "F39",
+            "Rối loạn khí sắc [cảm xúc] không xác định",
+            ("rối loạn cảm xúc",),
+        ),
+        _tt06_entry(
+            "B18.2",
+            "Bệnh viêm gan virus C mạn tính",
+            ("viêm gan virus C và B",),
+        ),
+        _tt06_entry(
+            "I27.2",
+            "Tăng huyết áp động mạch phổi thứ phát",
+            (
+                "tăng áp động mạch phổi",
+                "tăng áp động mạch phổi mức độ trung bình",
+            ),
+        ),
         _icd10_entry(
             "I48.91",
             "Unspecified atrial fibrillation",
@@ -201,6 +253,7 @@ def demo_entries() -> list[TerminologyEntry]:
                 "rung nhĩ",
                 "rung nhĩ kèm đáp ứng thất nhanh",
                 "rung nhĩ điển hình kèm theo đáp ứng thất nhanh",
+                "rung cuống nhĩ với đáp ứng thất nhanh",
             ),
         ),
         _icd10_entry(
@@ -357,7 +410,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "G47.30",
             "Sleep apnea, unspecified",
-            ("ngưng thở khi ngủ",),
+            ("ngưng thở khi ngủ", "ngừng thở khi ngủ"),
         ),
         _icd10_entry(
             "M86.9",
@@ -668,7 +721,7 @@ def demo_entries() -> list[TerminologyEntry]:
         _icd10_entry(
             "K26.9",
             "Duodenal ulcer, unspecified as acute or chronic, without hemorrhage or perforation",
-            ("loét tá tràng",),
+            ("loét tá tràng", "loét ở tá tràng"),
         ),
         _icd10_entry(
             "K22.10",
