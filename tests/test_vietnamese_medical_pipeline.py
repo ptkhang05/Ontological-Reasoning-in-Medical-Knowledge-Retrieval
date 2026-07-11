@@ -2614,3 +2614,56 @@ def test_public_long_diagnosis_variants_keep_full_text_with_same_codes(
     }
     for text_value, candidates in expected.items():
         assert diagnosis_by_text[text_value]["candidates"] == candidates
+
+
+def test_public_symptom_sections_keep_specific_functional_and_sensory_phrases(
+    client: TestClient,
+) -> None:
+    text = (
+        "Triệu chứng hiện tại: lo âu, hoảng sợ, sợ ánh sáng, lơ mơ, "
+        "cảm giác khát nước, khó khăn khi nhìn gần, khó khăn về thị lực gần, "
+        "khó khăn khi ra khỏi giường và không thể tự chăm sóc bản thân tại nhà. "
+        "Bệnh sử: chảy máu mũi tái diễn. Hiện tại không chảy máu mũi. "
+        "Chẩn đoán: rối loạn lo âu."
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    entities = response.json()
+    symptoms = [entity for entity in entities if entity["type"] == "TRIỆU_CHỨNG"]
+    symptom_texts = {entity["text"].lower() for entity in symptoms}
+
+    expected = {
+        "lo âu",
+        "hoảng sợ",
+        "sợ ánh sáng",
+        "lơ mơ",
+        "cảm giác khát nước",
+        "khó khăn khi nhìn gần",
+        "khó khăn về thị lực gần",
+        "khó khăn khi ra khỏi giường",
+        "không thể tự chăm sóc bản thân tại nhà",
+        "chảy máu mũi",
+    }
+    assert expected.issubset(symptom_texts)
+
+    nosebleeds = [
+        entity for entity in symptoms if entity["text"].lower() == "chảy máu mũi"
+    ]
+    assert len(nosebleeds) == 2
+    assert "isNegated" not in nosebleeds[0]["assertions"]
+    assert "isNegated" in nosebleeds[1]["assertions"]
+
+    anxiety_diagnosis = next(
+        entity
+        for entity in entities
+        if entity["type"] == "CHẨN_ĐOÁN"
+        and entity["text"].lower() == "rối loạn lo âu"
+    )
+    assert anxiety_diagnosis["candidates"] == ["F41.9"]
+    assert not any(
+        entity["position"][0] >= anxiety_diagnosis["position"][0]
+        and entity["position"][1] <= anxiety_diagnosis["position"][1]
+        for entity in symptoms
+    )
