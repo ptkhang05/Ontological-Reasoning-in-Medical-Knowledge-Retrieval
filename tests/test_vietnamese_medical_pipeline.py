@@ -2728,3 +2728,61 @@ def test_public_symptom_sections_keep_neurologic_and_functional_variants(
     assert symptom_by_text["tê bì vùng trán phải, da đầu phải và nửa mặt phải"][
         "assertions"
     ] == []
+
+
+def test_public_physical_findings_keep_neurologic_and_dehydration_signs(
+    client: TestClient,
+) -> None:
+    text = (
+        "Dấu hiệu lâm sàng:\n"
+        "- ran\n"
+        "- dịch thanh dịch lẫn máu từ vết mổ\n"
+        "- Không đau khi vận động cánh tay\n"
+        "- đau ở hông phải\n"
+        "- kích thích nhẹ\n"
+        "- yếu nửa người bên phải\n"
+        "- suy giảm tri giác\n"
+        "- không nhấc chân phải khỏi mặt giường\n"
+        "- chân phải liên tục khuỵ xuống\n"
+        "- tỉnh chậm, phản xạ kém\n"
+        "- Da niêm mạc hồng nhạt\n"
+        "- Không xuất huyết dưới da\n"
+        "- Da khô, nếp véo da mất chậm\n"
+        "- nước tiểu có cặn\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptoms = [
+        entity for entity in response.json() if entity["type"] == "TRIỆU_CHỨNG"
+    ]
+    symptom_by_text = {entity["text"].lower(): entity for entity in symptoms}
+    expected = {
+        "ran",
+        "dịch thanh dịch lẫn máu từ vết mổ",
+        "đau khi vận động cánh tay",
+        "đau ở hông phải",
+        "kích thích nhẹ",
+        "yếu nửa người bên phải",
+        "suy giảm tri giác",
+        "nhấc chân phải khỏi mặt giường",
+        "chân phải liên tục khuỵ xuống",
+        "tỉnh chậm",
+        "phản xạ kém",
+        "da niêm mạc hồng nhạt",
+        "xuất huyết dưới da",
+        "da khô",
+        "nếp véo da mất chậm",
+        "nước tiểu có cặn",
+    }
+
+    assert expected.issubset(symptom_by_text)
+    assert symptom_by_text["đau khi vận động cánh tay"]["assertions"] == [
+        "isNegated"
+    ]
+    assert symptom_by_text["nhấc chân phải khỏi mặt giường"]["assertions"] == [
+        "isNegated"
+    ]
+    assert symptom_by_text["xuất huyết dưới da"]["assertions"] == ["isNegated"]
+    assert symptom_by_text["suy giảm tri giác"]["assertions"] == []
