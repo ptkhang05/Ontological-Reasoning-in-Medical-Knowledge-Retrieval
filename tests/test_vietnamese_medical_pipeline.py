@@ -2667,3 +2667,64 @@ def test_public_symptom_sections_keep_specific_functional_and_sensory_phrases(
         and entity["position"][1] <= anxiety_diagnosis["position"][1]
         for entity in symptoms
     )
+
+
+def test_public_symptom_sections_keep_neurologic_and_functional_variants(
+    client: TestClient,
+) -> None:
+    text = (
+        "Triệu chứng hiện tại:\n"
+        "- mất ý thức\n"
+        "- Không quầng sáng\n"
+        "- Không mất kiểm soát đại tiện hoặc tiểu tiện\n"
+        "- Tê bì vùng trán phải, da đầu phải và nửa mặt phải\n"
+        "- Mất thăng bằng. Gần ngất\n"
+        "- căng cứng vai trái\n"
+        "- giảm lượng nước tiểu\n"
+        "- diarrhea\n"
+        "- abdominal pain\n"
+        "- giảm khả năng quan hệ tình dục với bạn tình\n"
+        "- đi khập khiễng cách quãng\n"
+        "- Khó kéo khóa quần\n"
+        "- Cánh tay trái lơ lửng\n"
+        "- khó khăn khi ước lượng vị trí ngồi xuống ghế\n"
+        "- Đau vùng xoang\n"
+        "- hoang tưởng\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    symptoms = [
+        entity for entity in response.json() if entity["type"] == "TRIỆU_CHỨNG"
+    ]
+    symptom_by_text = {entity["text"].lower(): entity for entity in symptoms}
+    expected = {
+        "mất ý thức",
+        "quầng sáng",
+        "mất kiểm soát đại tiện hoặc tiểu tiện",
+        "tê bì vùng trán phải, da đầu phải và nửa mặt phải",
+        "mất thăng bằng",
+        "gần ngất",
+        "căng cứng vai trái",
+        "giảm lượng nước tiểu",
+        "diarrhea",
+        "abdominal pain",
+        "giảm khả năng quan hệ tình dục với bạn tình",
+        "đi khập khiễng cách quãng",
+        "khó kéo khóa quần",
+        "cánh tay trái lơ lửng",
+        "khó khăn khi ước lượng vị trí ngồi xuống ghế",
+        "đau vùng xoang",
+        "hoang tưởng",
+    }
+
+    assert expected.issubset(symptom_by_text)
+    assert symptom_by_text["quầng sáng"]["assertions"] == ["isNegated"]
+    assert symptom_by_text["mất kiểm soát đại tiện hoặc tiểu tiện"][
+        "assertions"
+    ] == ["isNegated"]
+    assert symptom_by_text["mất ý thức"]["assertions"] == []
+    assert symptom_by_text["tê bì vùng trán phải, da đầu phải và nửa mặt phải"][
+        "assertions"
+    ] == []
