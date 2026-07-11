@@ -549,7 +549,7 @@ def test_public_imaging_and_chronic_findings_get_icd_candidates(client: TestClie
         "bàng quang thần kinh": ["N31.9"],
         "liệt hai chi dưới": ["G82.2"],
         "rối loạn lo âu": ["F41.9"],
-        "cổ trướng": ["R18.8"],
+        "cổ trướng": ["R18"],
     }
     for text_value, candidates in expected.items():
         assert diagnosis_by_text[text_value]["candidates"] == candidates

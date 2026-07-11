@@ -204,6 +204,7 @@ BTC_CANDIDATE_OVERRIDES = {
     "trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
 }
 BTC_CODE_CANDIDATE_OVERRIDES = {
+    "R18.8": ["R18"],
     "I26.99": ["I26.9"],
     "I31.39": ["I31.3"],
     "I62.00": ["I62.0"],
