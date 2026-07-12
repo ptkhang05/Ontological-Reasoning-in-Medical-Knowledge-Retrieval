@@ -2845,7 +2845,7 @@ def test_public_uncoded_chronic_diagnoses_get_verified_tt06_candidates(
     )
 
 
-def test_public_context_specific_diagnoses_get_verified_tt06_candidates(
+def test_public_context_specific_diagnoses_use_conservative_btc_candidates(
     client: TestClient,
 ) -> None:
     text = (
@@ -2871,8 +2871,8 @@ def test_public_context_specific_diagnoses_get_verified_tt06_candidates(
         "suy giảm nhận thức nhẹ": (["F06.7"], ["isHistorical"]),
         "suy giảm nhận thức": (["R41.8"], ["isHistorical"]),
         "ung thư biểu mô tuyến giật nhú": (["C73"], ["isHistorical"]),
-        "khối ở chỗ uốn gan": (["C18.3"], []),
-        "ung thư biểu mô tuyến trên": (["C18.3"], []),
+        "khối ở chỗ uốn gan": ([], []),
+        "ung thư biểu mô tuyến trên": ([], []),
     }
 
     for text_value, (candidates, assertions) in expected.items():

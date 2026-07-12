@@ -203,6 +203,9 @@ BTC_CANDIDATE_OVERRIDES = {
     "viêm gan virus c và b": ["B18.2", "B18.1"],
     "bệnh trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
     "trào ngược dạ dày thực quản": ["K21.0", "K21.9"],
+    # These isolated spans do not establish one ICD code without document context.
+    "khối ở chỗ uốn gan": [],
+    "ung thư biểu mô tuyến trên": [],
 }
 BTC_CODE_CANDIDATE_OVERRIDES = {
     "R18.8": ["R18"],
