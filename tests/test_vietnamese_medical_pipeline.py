@@ -2843,3 +2843,46 @@ def test_public_uncoded_chronic_diagnoses_get_verified_tt06_candidates(
         and entity["text"].lower() == "tăng"
         for entity in entities
     )
+
+
+def test_public_context_specific_diagnoses_get_verified_tt06_candidates(
+    client: TestClient,
+) -> None:
+    text = (
+        "1. Tiền sử bệnh\n"
+        "Bệnh lý mãn tính:\n"
+        "- Suy giảm nhận thức nhẹ suy giảm nhận thức\n"
+        "Tiền sử phẫu thuật / thủ thuật:\n"
+        "- Cắt tuyến giáp do ung thư biểu mô tuyến giật nhú\n"
+        "3. Đánh giá tại bệnh viện\n"
+        "Các phát hiện chẩn đoán khác:\n"
+        "- khối ở chỗ uốn gan\n"
+        "- ung thư biểu mô tuyến trên sinh thiết\n"
+    )
+
+    response = client.post("/v1/analyze/btc", json={"text": text})
+
+    assert response.status_code == 200
+    diagnoses = [
+        entity for entity in response.json() if entity["type"] == "CHẨN_ĐOÁN"
+    ]
+    diagnosis_by_text = {entity["text"].lower(): entity for entity in diagnoses}
+    expected = {
+        "suy giảm nhận thức nhẹ": (["F06.7"], ["isHistorical"]),
+        "suy giảm nhận thức": (["R41.8"], ["isHistorical"]),
+        "ung thư biểu mô tuyến giật nhú": (["C73"], ["isHistorical"]),
+        "khối ở chỗ uốn gan": (["C18.3"], []),
+        "ung thư biểu mô tuyến trên": (["C18.3"], []),
+    }
+
+    for text_value, (candidates, assertions) in expected.items():
+        entity = diagnosis_by_text[text_value]
+        assert entity["candidates"] == candidates
+        assert entity["assertions"] == assertions
+        start, end = entity["position"]
+        assert text[start:end] == entity["text"]
+    assert any(
+        entity["type"] == "TÊN_XÉT_NGHIỆM"
+        and entity["text"].lower() == "sinh thiết"
+        for entity in response.json()
+    )

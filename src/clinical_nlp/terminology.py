@@ -234,6 +234,32 @@ def demo_entries() -> list[TerminologyEntry]:
             ("rối loạn cảm xúc",),
         ),
         _tt06_entry(
+            "F06.7",
+            "Rối loạn nhận thức nhẹ",
+            ("suy giảm nhận thức nhẹ",),
+        ),
+        _tt06_entry(
+            "R41.8",
+            (
+                "Triệu chứng và dấu hiệu khác và/ hoặc không xác định liên quan "
+                "đến chức năng nhận thức và/ hoặc nhận biết"
+            ),
+            ("suy giảm nhận thức",),
+        ),
+        _tt06_entry(
+            "C73",
+            "U ác tính ở tuyến giáp",
+            ("ung thư biểu mô tuyến giật nhú",),
+        ),
+        _tt06_entry(
+            "C18.3",
+            "U ác tính ở đại tràng góc gan",
+            (
+                "khối ở chỗ uốn gan",
+                "ung thư biểu mô tuyến trên",
+            ),
+        ),
+        _tt06_entry(
             "B18.2",
             "Bệnh viêm gan virus C mạn tính",
             ("viêm gan virus C và B",),
