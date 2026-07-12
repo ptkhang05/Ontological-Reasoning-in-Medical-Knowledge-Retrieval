@@ -2845,7 +2845,7 @@ def test_public_uncoded_chronic_diagnoses_get_verified_tt06_candidates(
     )
 
 
-def test_public_context_specific_diagnoses_use_conservative_btc_candidates(
+def test_public_context_specific_diagnoses_avoid_ambiguous_mass_spans(
     client: TestClient,
 ) -> None:
     text = (
@@ -2871,8 +2871,6 @@ def test_public_context_specific_diagnoses_use_conservative_btc_candidates(
         "suy giảm nhận thức nhẹ": (["F06.7"], ["isHistorical"]),
         "suy giảm nhận thức": (["R41.8"], ["isHistorical"]),
         "ung thư biểu mô tuyến giật nhú": (["C73"], ["isHistorical"]),
-        "khối ở chỗ uốn gan": ([], []),
-        "ung thư biểu mô tuyến trên": ([], []),
     }
 
     for text_value, (candidates, assertions) in expected.items():
@@ -2881,6 +2879,8 @@ def test_public_context_specific_diagnoses_use_conservative_btc_candidates(
         assert entity["assertions"] == assertions
         start, end = entity["position"]
         assert text[start:end] == entity["text"]
+    assert "khối ở chỗ uốn gan" not in diagnosis_by_text
+    assert "ung thư biểu mô tuyến trên" not in diagnosis_by_text
     assert any(
         entity["type"] == "TÊN_XÉT_NGHIỆM"
         and entity["text"].lower() == "sinh thiết"

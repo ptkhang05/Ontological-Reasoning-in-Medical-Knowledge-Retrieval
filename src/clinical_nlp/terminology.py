@@ -252,14 +252,6 @@ def demo_entries() -> list[TerminologyEntry]:
             ("ung thư biểu mô tuyến giật nhú",),
         ),
         _tt06_entry(
-            "C18.3",
-            "U ác tính ở đại tràng góc gan",
-            (
-                "khối ở chỗ uốn gan",
-                "ung thư biểu mô tuyến trên",
-            ),
-        ),
-        _tt06_entry(
             "B18.2",
             "Bệnh viêm gan virus C mạn tính",
             ("viêm gan virus C và B",),
